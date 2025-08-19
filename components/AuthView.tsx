@@ -288,7 +288,7 @@ const AuthView: React.FC = () => {
         <div className="min-h-screen w-full flex flex-col items-center justify-center bg-transparent p-4">
             <Card className="w-full max-w-sm p-8 animate-fade-in-up">
                 <div className="text-center mb-6">
-                    <img src="/vite.svg" alt="App Logo" className="h-16 w-16 mx-auto mb-4" />
+                    <img src="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🇲🇦</text></svg>" alt="App Logo" className="h-16 w-16 mx-auto mb-4" />
                     <h1 className="text-3xl font-bold text-[var(--color-text-base)]">LearnDarija</h1>
                     <p className="text-[var(--color-text-muted)] mt-2">{isLogin ? t('auth_signin_title') : t('auth_signup_title')}</p>
                     {!isLogin && <p className="text-sm text-[var(--color-text-muted)] mt-1">{t('auth_signup_step', { current: signUpStep + 1, total: 3 })}</p>}

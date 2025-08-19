@@ -324,7 +324,7 @@ const ConversationView: React.FC = () => {
                     ) : (
                         messages.map((msg, index) => (
                             <div key={index} className={`flex items-end gap-3 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                {msg.sender === 'ai' && <img src="/vite.svg" alt="Tutor" className="w-8 h-8 rounded-full bg-slate-700 p-1 flex-shrink-0"/>}
+                                {msg.sender === 'ai' && <img src="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🇲🇦</text></svg>" alt="Tutor" className="w-8 h-8 rounded-full bg-slate-700 p-1 flex-shrink-0"/>}
                                 <div className={`max-w-xs md:max-w-md p-3 rounded-2xl ${
                                     msg.sender === 'user' ? 'bg-primary-500 text-white rounded-br-none' :
                                     msg.sender === 'ai' ? 'bg-slate-700 text-slate-200 rounded-bl-none' :
@@ -355,7 +355,7 @@ const ConversationView: React.FC = () => {
                     )}
                     {isResponding && (
                         <div className="flex items-end gap-3 justify-start">
-                             <img src="/vite.svg" alt="Tutor" className="w-8 h-8 rounded-full bg-slate-700 p-1"/>
+                             <img src="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🇲🇦</text></svg>" alt="Tutor" className="w-8 h-8 rounded-full bg-slate-700 p-1"/>
                             <div className="bg-slate-700 rounded-2xl rounded-bl-none p-3 inline-flex items-center gap-2">
                                 <SpinnerIcon className="w-4 h-4 animate-spin"/>
                                 <span className="text-sm text-slate-400">{t('conversation_tutor_typing')}</span>

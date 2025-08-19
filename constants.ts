@@ -2,9 +2,9 @@ import { LearningTopic, Achievement, AchievementID, Quest, Sticker, StickerID, S
 import { TranslationKey } from "./localization/translations.ts";
 
 // --- DEVELOPMENT FLAG ---
-// Set this to `false` to use mock data and avoid hitting API rate limits.
-// Set this to `true` to use the live Gemini API.
-export const ENABLE_AI_SERVICES = true;
+// This now automatically disables AI services if the API key is not provided in the environment.
+// The app will fall back to mock data, preventing crashes on deployment.
+export const ENABLE_AI_SERVICES = typeof process !== 'undefined' && !!process.env?.API_KEY;
 
 // This API key is included directly as requested by the user.
 // In a production environment, this should be handled via secure environment variables.

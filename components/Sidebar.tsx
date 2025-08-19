@@ -78,7 +78,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, isCollapsed,
     return (
         <aside className={`fixed top-0 left-0 h-full bg-[var(--color-sidebar-bg)] backdrop-blur-lg border-r border-[var(--color-border-card)] flex flex-col z-20 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-24 p-3' : 'w-64 p-4'}`}>
             <div className={`flex items-center mb-8 transition-all duration-300 ${isCollapsed ? 'justify-center' : 'px-2'}`}>
-                <img src="/vite.svg" alt="App Logo" className="h-8 w-8 flex-shrink-0" />
+                <img src="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🇲🇦</text></svg>" alt="App Logo" className="h-8 w-8 flex-shrink-0" />
                 {!isCollapsed && (
                     <h1 className="text-xl font-bold text-white tracking-tight ml-3 whitespace-nowrap overflow-hidden">
                         LearnDarija
