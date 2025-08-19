@@ -1,0 +1,8 @@
+{
+  "name": "LearnDarija",
+  "description": "LearnDarija: An AI-powered application to help you learn Moroccan Darija through interactive quizzes, points, and explanations. Track your progress and become fluent in Darija!",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "prompt": ""
+}
