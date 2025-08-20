@@ -1,5 +1,3 @@
-
-
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { XCircleIcon } from '../icons/index.ts';
@@ -42,7 +40,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
       aria-labelledby="modal-title"
     >
       <Card
-        className="w-full max-w-md m-4 p-0"
+        className="w-full max-w-sm sm:max-w-md m-4 p-0"
         onClick={(e) => e.stopPropagation()} // Prevent closing modal when clicking inside
       >
         <div className="flex justify-between items-center p-4 border-b border-slate-700">

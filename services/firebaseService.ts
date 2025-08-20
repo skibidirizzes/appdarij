@@ -1,161 +1,179 @@
-// Mocking Firebase to run in a restricted environment.
-// All data is stored in localStorage to ensure functionality.
+// This service now uses the live Firebase SDK (compat version as per index.html)
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import 'firebase/compat/firestore';
+import { CommunityPost, Friend, LeaderboardEntry, UserProfile, createNewDefaultUser } from "../types.ts";
+import { GLOBAL_USERS_KEY } from '../constants.ts'; // This might be deprecated with full Firebase.
 
-import { CommunityPost, Friend, LeaderboardEntry, UserProfile, createNewDefaultUser, StickerID } from "../types.ts";
-import { GLOBAL_USERS_KEY, LOCAL_STORAGE_KEY } from "../constants.ts";
-
-const COMMUNITY_POSTS_KEY = 'communityPosts';
-
-// --- Auth Mock ---
-export const auth = {
-    signOut: async () => {
-        return Promise.resolve();
-    }
+// Your web app's Firebase configuration from firebase-messaging-sw.js
+const firebaseConfig = {
+  apiKey: "AIzaSyA1ekekT64tdb4Ly05qxDNd9NbcKJgkOyo",
+  authDomain: "darija-f8b96.firebaseapp.com",
+  projectId: "darija-f8b96",
+  storageBucket: "darija-f8b96.firebasestorage.app",
+  messagingSenderId: "157037222389",
+  appId: "1:157037222389:web:b7e1e0f4ca00f726dc28bc",
 };
 
-// --- Friends System Mocks ---
-export const searchUsers = async (query: string, excludeUids: string[] = []): Promise<Friend[]> => Promise.resolve([]);
-export const getUsersByIds = async (uids: string[]): Promise<Friend[]> => Promise.resolve([]);
-export const sendFriendRequest = async (fromUid: string, toUid: string): Promise<void> => {
-    console.warn("Mock Function: sendFriendRequest called.");
-    return Promise.resolve();
-};
-export const respondToFriendRequest = async (currentUserUid: string, requestingUserUid: string, accept: boolean): Promise<void> => {
-    console.warn("Mock Function: respondToFriendRequest called.");
-    return Promise.resolve();
-};
-export const removeFriend = async (currentUserUid: string, friendToRemoveUid: string): Promise<void> => {
-    console.warn("Mock Function: removeFriend called.");
-    return Promise.resolve();
+// Initialize Firebase
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+export const auth = firebase.auth();
+export const firestore = firebase.firestore();
+
+// --- Auth Functions ---
+export const signInWithGoogle = async () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    return auth.signInWithPopup(provider);
 };
 
-const getGlobalUserStore = (): UserProfile[] => {
-    const store = localStorage.getItem(GLOBAL_USERS_KEY);
-    return store ? JSON.parse(store) : [];
+export const signInAnonymously = async () => {
+    return auth.signInAnonymously();
 };
 
-const generateMockUserForProfile = (uid: string, displayName: string, score: number, photoURL: string): UserProfile => {
-    const defaultUser = createNewDefaultUser();
-    return {
-        ...defaultUser,
-        uid,
-        displayName,
-        score,
-        photoURL,
-        email: `${displayName.toLowerCase().replace(' ', '')}@mock.com`,
-        isAnonymous: false,
-        createdAt: Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000,
-        lastOnline: Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000,
-        followers: Array.from({ length: Math.floor(Math.random() * 100) }, (_, i) => `follower${i}`),
-        following: Array.from({ length: Math.floor(Math.random() * 50) }, (_, i) => `following${i}`),
-        stickers: Object.keys(defaultUser.stickers).slice(0, Math.floor(Math.random() * 3)).map(id => defaultUser.stickers[id as StickerID]),
-    };
+export const createUserWithEmail = async (email, password) => {
+    return auth.createUserWithEmailAndPassword(email, password);
+};
+
+export const signInWithEmail = async (email, password) => {
+    return auth.signInWithEmailAndPassword(email, password);
+};
+
+export const signOut = async () => {
+    return auth.signOut();
+};
+
+// --- User Profile Service (Firestore) ---
+const usersCollection = firestore.collection('users');
+
+export const createUserProfile = async (uid: string, profileData: Partial<UserProfile>): Promise<void> => {
+    return usersCollection.doc(uid).set(profileData, { merge: true });
+};
+
+export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
+    const doc = await usersCollection.doc(uid).get();
+    return doc.exists ? doc.data() as UserProfile : null;
+};
+
+export const updateUserProfile = async (uid:string, updates: { [key: string]: any }): Promise<void> => {
+    return usersCollection.doc(uid).update(updates);
 };
 
 // --- Leaderboard ---
 export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
-    // The "real" leaderboard is now just all users that have been created in the app.
-    const allUsers = getGlobalUserStore();
-
-    // Ensure the currently logged-in user's score is up-to-date.
-    const currentUserJson = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (currentUserJson) {
-        const currentUser: UserProfile = JSON.parse(currentUserJson);
-        const userIndex = allUsers.findIndex(u => u.uid === currentUser.uid);
-        if (userIndex !== -1) {
-            allUsers[userIndex] = currentUser; // Update with latest data
-        } else if (!currentUser.isAnonymous) {
-             allUsers.push(currentUser); // Add if not present (e.g., first time)
-        }
-    }
-
-    const sortedLeaderboard = allUsers
-        .filter(u => !u.isAnonymous) // Exclude guests from the leaderboard
-        .sort((a, b) => b.score - a.score)
-        .map((user, index) => ({
-            uid: user.uid,
-            displayName: user.displayName,
-            score: user.score,
-            photoURL: user.photoURL,
-            rank: index + 1,
-        }));
+    const snapshot = await usersCollection
+        .where('isAnonymous', '==', false)
+        .orderBy('score', 'desc')
+        .limit(100)
+        .get();
         
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    return Promise.resolve(sortedLeaderboard);
+    const leaderboard: LeaderboardEntry[] = snapshot.docs.map((doc, index) => {
+        const data = doc.data() as UserProfile;
+        return {
+            uid: doc.id,
+            displayName: data.displayName,
+            score: data.score,
+            photoURL: data.photoURL,
+            rank: index + 1,
+        };
+    });
+    return leaderboard;
 };
 
+// --- Friends System ---
+export const searchUsers = async (query: string, excludeUids: string[] = []): Promise<Friend[]> => {
+    const snapshot = await usersCollection
+        .where('displayName', '>=', query)
+        .where('displayName', '<=', query + '\uf8ff')
+        .limit(10)
+        .get();
+    
+    return snapshot.docs
+        .map(doc => ({ ...doc.data(), uid: doc.id } as Friend))
+        .filter(user => !excludeUids.includes(user.uid));
+};
 
-// --- Community (localStorage implementation) ---
+export const getUsersByIds = async (uids: string[]): Promise<Friend[]> => {
+    if (uids.length === 0) return [];
+    const snapshot = await usersCollection.where(firebase.firestore.FieldPath.documentId(), 'in', uids).get();
+    return snapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id } as Friend));
+};
+
+export const sendFriendRequest = async (fromUid: string, toUid: string): Promise<void> => {
+    const fromUserRef = usersCollection.doc(fromUid);
+    const toUserRef = usersCollection.doc(toUid);
+    
+    const batch = firestore.batch();
+    batch.update(fromUserRef, { 'friendRequests.outgoing': firebase.firestore.FieldValue.arrayUnion(toUid) });
+    batch.update(toUserRef, { 'friendRequests.incoming': firebase.firestore.FieldValue.arrayUnion(fromUid) });
+    
+    return batch.commit();
+};
+
+export const respondToFriendRequest = async (currentUserUid: string, requestingUserUid: string, accept: boolean): Promise<void> => {
+    const currentUserRef = usersCollection.doc(currentUserUid);
+    const requestingUserRef = usersCollection.doc(requestingUserUid);
+
+    const batch = firestore.batch();
+    
+    // Always remove the requests
+    batch.update(currentUserRef, { 'friendRequests.incoming': firebase.firestore.FieldValue.arrayRemove(requestingUserUid) });
+    batch.update(requestingUserRef, { 'friendRequests.outgoing': firebase.firestore.FieldValue.arrayRemove(currentUserUid) });
+    
+    if (accept) {
+        batch.update(currentUserRef, { friends: firebase.firestore.FieldValue.arrayUnion(requestingUserUid) });
+        batch.update(requestingUserRef, { friends: firebase.firestore.FieldValue.arrayUnion(currentUserUid) });
+    }
+    
+    return batch.commit();
+};
+
+export const removeFriend = async (currentUserUid: string, friendToRemoveUid: string): Promise<void> => {
+    const currentUserRef = usersCollection.doc(currentUserUid);
+    const friendToRemoveRef = usersCollection.doc(friendToRemoveUid);
+
+    const batch = firestore.batch();
+    batch.update(currentUserRef, { friends: firebase.firestore.FieldValue.arrayRemove(friendToRemoveUid) });
+    batch.update(friendToRemoveRef, { friends: firebase.firestore.FieldValue.arrayRemove(currentUserUid) });
+
+    return batch.commit();
+};
+
+// --- Community ---
+const postsCollection = firestore.collection('posts');
+
 export const createCommunityPost = async (postData: Omit<CommunityPost, 'id' | 'timestamp' | 'upvotes' | 'replies'>): Promise<string> => {
-    const posts = await getCommunityPosts();
-    const newPost: CommunityPost = {
+    const newPostRef = postsCollection.doc();
+    const newPost: Omit<CommunityPost, 'id'> = {
         ...postData,
-        id: `post_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-        upvotes: Math.floor(Math.random() * 50),
-        replies: Math.floor(Math.random() * 10),
+        upvotes: 0,
+        replies: 0,
         timestamp: Date.now(),
     };
-    posts.unshift(newPost);
-    localStorage.setItem(COMMUNITY_POSTS_KEY, JSON.stringify(posts));
-    return newPost.id;
+    await newPostRef.set(newPost);
+    return newPostRef.id;
 };
 
 export const getCommunityPosts = async (): Promise<CommunityPost[]> => {
-    const postsJson = localStorage.getItem(COMMUNITY_POSTS_KEY);
-    return postsJson ? JSON.parse(postsJson) : [];
+    const snapshot = await postsCollection.orderBy('timestamp', 'desc').limit(50).get();
+    return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as CommunityPost));
 };
 
 export const getCommunityPostsByUser = async (userId: string): Promise<CommunityPost[]> => {
-    const allPosts = await getCommunityPosts();
-    const userPosts = allPosts.filter(post => post.author.uid === userId);
-
-    const profile = await getUserProfile(userId);
-    // Generate mock posts only for mock users if they don't have real ones.
-    if (profile && profile.uid.startsWith('mockuser_') && userPosts.length === 0) {
-        return [
-            { id: 'mock1', author: { uid: userId, displayName: profile.displayName, photoURL: profile.photoURL }, title: 'Just starting out!', content: 'Hello everyone, I am new here and excited to learn Darija!', contentSnippet: 'Hello everyone, I am new here...', upvotes: 15, replies: 4, timestamp: Date.now() - 86400000, topic: 'Introductions', tags: [] },
-            { id: 'mock2', author: { uid: userId, displayName: profile.displayName, photoURL: profile.photoURL }, title: 'What does "bzaf" mean?', content: 'I keep hearing the word "bzaf" everywhere. Can someone explain how to use it?', contentSnippet: 'I keep hearing the word "bzaf"...', upvotes: 22, replies: 8, timestamp: Date.now() - 86400000 * 3, topic: 'Vocabulary', tags: [] },
-        ];
-    }
-    return userPosts;
+    const snapshot = await postsCollection
+        .where('author.uid', '==', userId)
+        .orderBy('timestamp', 'desc')
+        .limit(20)
+        .get();
+    return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as CommunityPost));
 };
 
-
-// --- Notifications Mock ---
+// --- Notifications ---
 export const requestAndSaveToken = async (uid: string): Promise<boolean> => {
-    console.log("Notifications are not supported in this environment. Mocking call.");
-    return Promise.resolve(false);
+    // This requires a full Firebase Messaging setup which is beyond the scope of this refactor.
+    // We'll leave it as a non-functional mock to avoid breaking the UI.
+    console.warn("Firebase Messaging token request is not fully implemented.");
+    return false;
 };
-
-// --- User Profile Service (acts like Firestore) ---
-export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
-    const allUsers = getGlobalUserStore();
-    const user = allUsers.find(u => u.uid === uid);
-    return user || null;
-};
-
-export const updateUserProfile = async (uid: string, updates: Partial<UserProfile>): Promise<void> => {
-     const storedUserJson = localStorage.getItem(LOCAL_STORAGE_KEY);
-     if (storedUserJson) {
-        const currentUser: UserProfile = JSON.parse(storedUserJson);
-        if (currentUser.uid === uid) {
-            const updatedUser = { ...currentUser, ...updates };
-             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedUser));
-
-             // Also update the global store
-             const allUsers = getGlobalUserStore();
-             const userIndex = allUsers.findIndex(u => u.uid === uid);
-             if(userIndex !== -1) {
-                 allUsers[userIndex] = updatedUser;
-                 localStorage.setItem(GLOBAL_USERS_KEY, JSON.stringify(allUsers));
-             }
-        }
-     }
-};
-
-
-// --- Unused Mocks (to prevent import errors) ---
-export const signInWithGoogle = () => Promise.reject(new Error("Firebase is not available in this environment."));
-export const signInAnonymously = () => Promise.reject(new Error("Firebase is not available in this environment."));
-export const createUserProfile = async (uid: string, profileData: Partial<UserProfile>): Promise<void> => {};

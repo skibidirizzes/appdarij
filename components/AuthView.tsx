@@ -1,26 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { LOCAL_STORAGE_KEY, GLOBAL_USERS_KEY } from '../constants.ts';
 import { UserProfile, createNewDefaultUser } from '../types.ts';
 import Card from './common/Card.tsx';
 import Button from './common/Button.tsx';
 import { SparklesIcon, SpinnerIcon, GoogleIcon, EyeIcon, EyeOffIcon } from './icons/index.ts';
 import { useTranslations } from '../hooks/useTranslations.ts';
+import { signInWithGoogle, createUserWithEmail, signInWithEmail, createUserProfile } from '../services/firebaseService.ts';
 
 const AuthView: React.FC = () => {
-    const [isLogin, setIsLogin] = useState(true);
+    const [isLogin, setIsLogin] = useState(false); // Default to sign up
     const [emailOrPhone, setEmailOrPhone] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const { t } = useTranslations();
 
-    // New state for multi-step signup
-    const [signUpStep, setSignUpStep] = useState(0); // 0: email, 1: name, 2: password
+    const [signUpStep, setSignUpStep] = useState(0);
     const [displayName, setDisplayName] = useState('');
     const [passwordConfirm, setPasswordConfirm] = useState('');
     const [passwordMismatchError, setPasswordMismatchError] = useState(false);
     
-    // State for password visibility
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -33,37 +31,56 @@ const AuthView: React.FC = () => {
     }, [password, passwordConfirm]);
 
     const handleAuthError = (err: any) => {
-        setError(t('auth_error_unexpected'));
-        console.error(err);
+        let message = t('auth_error_unexpected');
+        if (err.code) {
+            switch(err.code) {
+                case 'auth/invalid-email':
+                    message = t('auth_error_invalid_email'); break;
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                    message = t('auth_error_invalid_credential'); break;
+                case 'auth/email-already-in-use':
+                    message = t('auth_error_email_in_use'); break;
+            }
+        }
+        setError(message);
+        console.error("Firebase Auth Error:", err);
     }
-
+    
     const handleLoginSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError("Login is disabled in this demo. Please sign up or continue as a guest.");
+        setLoading(true);
+        setError(null);
+        try {
+            await signInWithEmail(emailOrPhone, password);
+            // onAuthStateChanged in context will handle the rest
+        } catch (err) {
+            handleAuthError(err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleSignUp = async () => {
         setLoading(true);
         setError(null);
         try {
-             const uid = `user_${Date.now()}`;
-             const defaultUser = createNewDefaultUser();
-             const newUser: UserProfile = {
-                ...defaultUser,
-                uid,
-                email: emailOrPhone, // Store whatever the user provided
-                displayName,
-                isAnonymous: false,
-                photoURL: `https://api.dicebear.com/8.x/miniavs/svg?seed=${displayName}`,
-             };
-             // Save to global user store for "real" leaderboard
-             const allUsers = JSON.parse(localStorage.getItem(GLOBAL_USERS_KEY) || '[]');
-             allUsers.push(newUser);
-             localStorage.setItem(GLOBAL_USERS_KEY, JSON.stringify(allUsers));
-             
-             // Set as current user
-             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newUser));
-             window.location.reload();
+             const userCredential = await createUserWithEmail(emailOrPhone, password);
+             const { user } = userCredential;
+             if(user) {
+                const { uid, isAnonymous } = user;
+                const defaultUser = createNewDefaultUser();
+                const newUserProfile: UserProfile = {
+                    ...defaultUser,
+                    uid,
+                    email: emailOrPhone,
+                    displayName,
+                    isAnonymous,
+                    photoURL: `https://api.dicebear.com/8.x/miniavs/svg?seed=${displayName}`,
+                };
+                await createUserProfile(uid, newUserProfile);
+                // onAuthStateChanged will handle UI update
+             }
         } catch (err: any) {
             handleAuthError(err);
             setLoading(false);
@@ -74,42 +91,10 @@ const AuthView: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            const uid = 'google_user_mock';
-            const defaultUser = createNewDefaultUser();
-            const newUser: UserProfile = {
-               ...defaultUser,
-               uid,
-               email: 'user@google.com',
-               displayName: 'Google User',
-               isAnonymous: false,
-               photoURL: `https://api.dicebear.com/8.x/miniavs/svg?seed=google`,
-            };
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newUser));
-            window.location.reload();
+            await signInWithGoogle();
+            // onAuthStateChanged in context will handle profile creation/login
         } catch (err: any) {
             handleAuthError(err);
-            setLoading(false);
-        }
-    };
-
-    const handleGuestSignIn = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const defaultUser = createNewDefaultUser();
-            const guestUser: UserProfile = {
-                ...defaultUser,
-                uid: 'guest-user',
-                isAnonymous: true,
-                email: 'guest@learn-darija.com',
-                displayName: 'Guest Learner',
-                photoURL: 'https://api.dicebear.com/8.x/miniavs/svg?seed=guest',
-            };
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(guestUser));
-            window.location.reload();
-        } catch (err: any) {
-            setError(t('auth_error_anonymous_failed'));
-            console.error("Guest sign-in error:", err);
             setLoading(false);
         }
     };
@@ -118,7 +103,6 @@ const AuthView: React.FC = () => {
         e.preventDefault();
         setError(null);
         if (signUpStep === 0) {
-            // Basic check for something that looks like an email or a phone number
             if (emailOrPhone.length < 5) {
                 setError(t('auth_error_invalid_email_phone'));
                 return;
@@ -139,8 +123,8 @@ const AuthView: React.FC = () => {
 
     const handleSignUpSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (password.length < 4) {
-            setError(t('auth_password_strength_length_simple'));
+        if (password.length < 6) { // Firebase default is 6
+            setError('Password must be at least 6 characters.');
             return;
         }
         if (password !== passwordConfirm) {
@@ -179,13 +163,13 @@ const AuthView: React.FC = () => {
 
     const renderSignUpForm = () => {
         switch (signUpStep) {
-            case 0: // Email or Phone
+            case 0: // Email
                 return (
                     <form onSubmit={handleSignUpNext} className="space-y-6">
                         <div>
                             <label htmlFor="emailOrPhone" className="block text-sm font-medium sr-only">{t('auth_email_phone_placeholder')}</label>
                             <input
-                                id="emailOrPhone" name="emailOrPhone" type="text" autoComplete="email" required
+                                id="emailOrPhone" name="emailOrPhone" type="email" autoComplete="email" required
                                 value={emailOrPhone} onChange={e => setEmailOrPhone(e.target.value)} placeholder={t('auth_email_phone_placeholder')}
                                 className="mt-1 block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                             />
@@ -226,7 +210,7 @@ const AuthView: React.FC = () => {
                             placeholder={t('auth_password_placeholder')} show={showPassword} onToggle={() => setShowPassword(s => !s)}
                             autoComplete="new-password"
                          />
-                        <p className="text-xs text-[var(--color-text-muted)] px-1">{t('auth_password_strength_length_simple')}</p>
+                        <p className="text-xs text-[var(--color-text-muted)] px-1">Password must be at least 6 characters.</p>
                         
                         <PasswordInput
                              id="password-confirm" value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)}
@@ -238,7 +222,7 @@ const AuthView: React.FC = () => {
                         {error && <p className="text-sm text-center text-red-400 p-2 bg-red-900/30 rounded-md">{error}</p>}
                         <div className="flex gap-4 pt-2">
                             <Button type="button" onClick={handleSignUpBack} className="w-full flex justify-center bg-slate-600 hover:bg-slate-500 auth-secondary-btn">{t('button_back')}</Button>
-                            <Button type="submit" disabled={loading || password.length < 4 || password !== passwordConfirm} className="w-full flex justify-center">
+                            <Button type="submit" disabled={loading || password.length < 6 || password !== passwordConfirm} className="w-full flex justify-center">
                                 {loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : t('auth_create_account_button')}
                             </Button>
                         </div>
@@ -253,7 +237,7 @@ const AuthView: React.FC = () => {
             <div>
                 <label htmlFor="emailOrPhone" className="block text-sm font-medium sr-only text-[var(--color-text-muted)]">{t('auth_email_phone_placeholder')}</label>
                 <input
-                    id="emailOrPhone" name="emailOrPhone" type="text" autoComplete="email" required
+                    id="emailOrPhone" name="emailOrPhone" type="email" autoComplete="email" required
                     value={emailOrPhone} onChange={e => setEmailOrPhone(e.target.value)} placeholder={t('auth_email_phone_placeholder')}
                     className="mt-1 block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                 />
@@ -305,9 +289,6 @@ const AuthView: React.FC = () => {
                         <Button onClick={handleGoogleSignIn} disabled={loading} className="w-full flex justify-center items-center gap-3 auth-google-btn">
                             <GoogleIcon className="w-5 h-5" />
                             <span className="font-semibold">{t('auth_google_signin')}</span>
-                        </Button>
-                        <Button onClick={handleGuestSignIn} disabled={loading} className="w-full flex justify-center items-center gap-2 bg-slate-600 hover:bg-slate-500 auth-secondary-btn">
-                            {t('auth_guest_button')}
                         </Button>
                     </div>
                 </div>

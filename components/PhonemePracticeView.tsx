@@ -279,8 +279,8 @@ const PhonemePracticeView: React.FC = () => {
                     <>
                         <p className="text-slate-400">{t('phoneme_practice_try_saying')}</p>
                         <div className="flex items-center justify-center gap-4 my-4">
-                            <h3 className="text-5xl font-bold text-white">{example.latin}</h3>
-                             <p className="font-arabic text-5xl text-slate-300">({example.arabic})</p>
+                            <h3 className="text-4xl font-bold text-white">{example.latin}</h3>
+                             <p className="font-arabic text-4xl text-slate-300">({example.arabic})</p>
                              <SpeakButton textToSpeak={example.arabic} />
                         </div>
                     </>

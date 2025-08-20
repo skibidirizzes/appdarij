@@ -709,7 +709,23 @@ const phonemeExampleSchema = {
 export async function getPhonemeExample(phoneme: string): Promise<{ latin: string, arabic: string, definition: string }> {
     if (!ENABLE_AI_SERVICES) {
         await new Promise(resolve => setTimeout(resolve, 500));
-        return { latin: `qahwa (mock)`, arabic: `قهوة (mock)`, definition: "Coffee (mock)" };
+        const mockExamples: Record<string, { latin: string; arabic: string; definition: string; }> = {
+            'ق': { latin: 'qahwa', arabic: 'قهوة', definition: 'Coffee' },
+            'غ': { latin: 'ghzal', arabic: 'غزال', definition: 'Gazelle / beautiful' },
+            'ح': { latin: 'henna', arabic: 'حناء', definition: 'Henna' },
+            'ع': { latin: 'aayn', arabic: 'عين', definition: 'Eye' },
+            'خ': { latin: 'khobz', arabic: 'خبز', definition: 'Bread' },
+            'ص': { latin: 'sber', arabic: 'صبر', definition: 'Patience' },
+            'ض': { latin: 'drb', arabic: 'ضرب', definition: 'To hit' },
+            'ط': { latin: 'tebla', arabic: 'طبلة', definition: 'Table' },
+            'ظ': { latin: 'dher', arabic: 'ظهر', definition: 'Back (body part)' },
+        };
+        const example = mockExamples[phoneme] || { latin: 'qahwa', arabic: 'قهوة', definition: 'Coffee' };
+        return {
+            latin: `${example.latin} (mock)`,
+            arabic: `${example.arabic} (mock)`,
+            definition: `${example.definition} (mock)`,
+        };
     }
     const prompt = `Provide one common, simple Moroccan Darija word that contains the sound represented by the letter '${phoneme}'. For example, for 'ح', you could provide 'b7al'. For 'ق', you could provide 'qahwa'. Also provide a simple English definition for the word.`;
     return handleApiCall(prompt, phonemeExampleSchema);
