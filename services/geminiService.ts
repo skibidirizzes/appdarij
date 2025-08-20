@@ -2,122 +2,30 @@ import { GoogleGenAI, Type, Chat, Content } from "@google/genai";
 import { Quiz, LearningTopic, Mistake, WordInfo, RootAnalysis, QuizQuestion, UserAnswer, WordHistoryEntry, SentenceFormationQuestion, WritingQuestion, SpeakingQuestion, DialectTranslation, PronunciationFeedback } from '../types.ts';
 import { QUIZ_LENGTH } from '../constants.ts';
 
-// --- MOCK DATA ---
-const mockQuiz: Quiz = [
-    {
-        id: 'mock-mc-1',
-        type: 'multiple-choice',
-        question: "How do you say 'good morning' in Darija?",
-        options: [
-            { latin: 'Masa l-khir', arabic: 'مساء الخير' },
-            { latin: 'Sbah l-khir', arabic: 'صباح الخير' },
-            { latin: 'Laila sa\'ida', arabic: 'ليلة سعيدة' },
-            { latin: 'Shukran', arabic: 'شكرا' }
-        ],
-        correctAnswerIndex: 1,
-        explanation: {
-            latin: "'Sbah l-khir' means 'Good morning'. 'Masa l-khir' is 'Good evening'.",
-            arabic: "'صباح الخير' تعني 'Good morning'. 'مساء الخير' هي 'Good evening'."
-        },
-        targetWord: { latin: 'Sbah l-khir', arabic: 'صباح الخير' }
-    },
-    {
-        id: 'mock-wr-1',
-        type: 'writing',
-        question: "Translate 'I want water' to Darija.",
-        correctAnswer: { latin: 'Bghit lma', arabic: 'بغيت الماء' },
-        explanation: {
-            latin: "'Bghit' means 'I want' and 'lma' means 'the water'.",
-            arabic: "'بغيت' تعني 'I want' و 'الماء' تعني 'the water'."
-        },
-        targetWord: { latin: 'Bghit', arabic: 'بغيت' }
-    },
-    {
-        id: 'mock-sp-1',
-        type: 'speaking',
-        question: "Say 'How are you?'",
-        correctAnswer: { latin: 'Kif dayr?', arabic: 'كيف داير؟' },
-        explanation: {
-            latin: "'Kif dayr?' is a common way to ask 'How are you?' to a male. For a female, you would say 'Kif dayra?'.",
-            arabic: "'كيف داير؟' هي طريقة شائعة لسؤال 'كيف حالك؟' لرجل. للمرأة، تقول 'كيف دايرة؟'."
-        },
-        targetWord: { latin: 'Kif dayr?', arabic: 'كيف داير؟' }
-    },
-    {
-        id: 'mock-sf-1',
-        type: 'sentence-formation',
-        question: "Form the sentence: 'This food is delicious.'",
-        wordBank: ['bnina', 'l-makla', 'hadi'],
-        correctSentence: ['hadi', 'l-makla', 'bnina'],
-        explanation: {
-            latin: "In Darija, adjectives usually come after the noun. 'hadi l-makla' means 'this food', and 'bnina' is the feminine adjective for 'delicious' that agrees with 'makla'.",
-            arabic: "في الدارجة، الصفات تأتي عادة بعد الاسم. 'هادي الماكلة' تعني 'this food'، و'بنينة' هي الصفة المؤنثة لكلمة 'delicious' التي تتوافق مع 'ماكلة'."
-        }
-    }
-];
-
-const mockWordInfo: WordInfo = {
-    latin: "Mzyan",
-    arabic: "مزيان",
-    definition: "Good, nice, okay, fine.",
-    examples: [
-        { latin: "Kif dayr? Mzyan, shukran.", arabic: "كيف داير؟ مزيان، شكرا.", translation: "How are you? Good, thank you." },
-        { latin: "Had l-makla mzyana.", arabic: "هاد الماكلة مزيانة.", translation: "This food is good." },
-        { latin: "Kullshi mzyan.", arabic: "كلشي مزيان.", translation: "Everything is fine." }
-    ]
-};
-
-const mockRecommendedWords: WordInfo[] = [
-    { latin: "Bghit", arabic: "بغيت", definition: "I want", examples: [{ latin: "Bghit wahd l-qahwa.", arabic: "بغيت واحد القهوة.", translation: "I want one coffee."}] },
-    { latin: "Fin?", arabic: "فين؟", definition: "Where?", examples: [{ latin: "Fin l-toilet?", arabic: "فين الطواليط؟", translation: "Where is the toilet?"}] },
-    { latin: "Shukran", arabic: "شكراً", definition: "Thank you", examples: [{ latin: "Shukran bzaf.", arabic: "شكراً بزاف.", translation: "Thank you very much."}] },
-    { latin: "Safi", arabic: "صافي", definition: "Okay, enough, that's it", examples: [{ latin: "Safi, bghit nemshi.", arabic: "صافي، بغيت نمشي.", translation: "Okay, I want to go."}] },
-];
-
-
-const mockChat = {
-    sendMessage: async (payload?: { message: string }) => {
-        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-        
-        let responseContent = {
-            latin: "Ana Fatima, l-modarrisa dyalek l-youm. Labas?",
-            arabic: "أنا فاطمة، المدرسة ديالك اليوم. لاباس؟",
-            english: "I'm Fatima, your teacher for today. Are you okay?"
-        };
-
-        if(payload?.message && payload.message.toLowerCase().includes('shukran')) {
-             responseContent = {
-                latin: "L'afu! Bghiti nhedro 3la shi 7aja khra?",
-                arabic: "العفو! بغيتي نهضروا على شي حاجة أخرى؟",
-                english: "You're welcome! Do you want to talk about something else?"
-            };
-        }
-
-        return {
-            text: JSON.stringify(responseContent)
-        };
-    }
-};
-
 // --- AI Initialization with Diagnostics ---
 
 // This will be exported so the UI can react to it.
 export let aiInitializationError: string | null = null;
 let ai: GoogleGenAI | null = null;
+const AI_DISABLED_ERROR = "AI services are disabled because the API key is not available.";
 
-try {
-    // This structure follows the user's setup constraints.
-    // In a browser, `process` is undefined, which will cause a ReferenceError.
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-        throw new Error("API_KEY environment variable not found.");
+// In a browser environment, `process` is typically not defined.
+// The application relies on the execution environment (like a specific hosting platform or a build tool)
+// to make the API_KEY available via `process.env.API_KEY`.
+if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+    try {
+        ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        console.log("Gemini AI Initialized Successfully.");
+    } catch (e) {
+        const error = e as Error;
+        aiInitializationError = `Gemini AI initialization failed even with an API key. Error: ${error.message}. AI features are disabled.`;
+        console.error("AI Initialization Failed:", error.message);
+        ai = null; // Ensure ai is null on failure
     }
-    ai = new GoogleGenAI({ apiKey });
-    console.log("Gemini AI Initialized Successfully.");
-} catch (e) {
-    // This catch will handle both the `process` is not defined error and our thrown error.
-    aiInitializationError = `AI features could not be initialized. The application is running in a browser environment where 'process.env.API_KEY' is not available. Please ensure your development server is configured to expose environment variables to the client-side code. The application will now use mock data.`;
-    console.error("AI Initialization Failed:", e.message);
+} else {
+    // This block will be hit in a standard browser environment.
+    aiInitializationError = `AI Initialization Failed: API_KEY not found. For security reasons, browser-based applications cannot directly access system environment variables. This app requires a specialized hosting environment that securely provides the API key. Without it, AI features are disabled.`;
+    console.error("AI Initialization Failed: 'process.env.API_KEY' is not available in this environment.");
 }
 
 const quizOptionSchema = {
@@ -225,7 +133,7 @@ const systemInstruction = `You are a friendly and encouraging language tutor spe
 Adhere strictly to these rules.`;
 
 async function handleApiCall(prompt: string, schema: object, isQuizCall?: boolean) {
-    if (!ai) throw new Error("AI services are disabled.");
+    if (!ai) throw new Error(AI_DISABLED_ERROR);
 
     const config: any = {
         responseMimeType: "application/json",
@@ -303,12 +211,6 @@ async function handleApiCall(prompt: string, schema: object, isQuizCall?: boolea
 
 
 export async function generateQuiz(topic: LearningTopic, level: number, wordToReview?: WordInfo, wordsForSpacedRepetition?: WordHistoryEntry[], subCategory?: string): Promise<Quiz> {
-    if (!ai) {
-        console.warn("AI Service Disabled, returning mock quiz. Reason:", aiInitializationError);
-        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-        return Promise.resolve(mockQuiz.slice(0, QUIZ_LENGTH));
-    }
-
     let topicSpecifics = "";
     if (topic === 'Vocabulary' && subCategory) {
         topicSpecifics = `The user has chosen the sub-category "${subCategory}". All vocabulary MUST relate to this theme.`;
@@ -355,12 +257,7 @@ export async function generateQuiz(topic: LearningTopic, level: number, wordToRe
 
 
 export async function analyzeMistakes(mistakes: Mistake[]): Promise<string> {
-    if (!ai) {
-        console.warn("AI Service Disabled, returning mock mistake analysis. Reason:", aiInitializationError);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return Promise.resolve("This is mock feedback. You are doing great, but pay attention to verb conjugations and noun genders!");
-    }
-    if (!ai) throw new Error("AI services are disabled.");
+    if (!ai) throw new Error(AI_DISABLED_ERROR);
 
     const formattedMistakes = mistakes.map(m => {
         let correctAnswerText = '';
@@ -398,12 +295,7 @@ ${formattedMistakes}`;
 }
 
 export async function getMistakeExplanation(question: QuizQuestion, userAnswer: UserAnswer): Promise<string> {
-    if (!ai) {
-        console.warn("AI Service Disabled, returning mock explanation. Reason:", aiInitializationError);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return Promise.resolve("This is a mock explanation. The correct answer is right because it's not wrong!");
-    }
-    if (!ai) throw new Error("AI services are disabled.");
+    if (!ai) throw new Error(AI_DISABLED_ERROR);
 
     const correctAnswer = question.type === 'multiple-choice' 
         ? question.options[question.correctAnswerIndex].latin 
@@ -452,28 +344,11 @@ const wordInfoSchema = {
 };
 
 export async function getWordInfo(word: string): Promise<WordInfo> {
-    if (!ai) {
-        console.warn("AI Service Disabled, returning mock word info. Reason:", aiInitializationError);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return Promise.resolve(mockWordInfo);
-    }
     const prompt = `Provide detailed information for the English word "${word}" in Moroccan Darija. I need its translation, a simple definition, and three diverse example sentences (easy, medium, hard) with their English translations.`;
     return handleApiCall(prompt, wordInfoSchema);
 }
 
 export async function getWordOfTheDay(language: 'en' | 'nl' = 'en'): Promise<WordInfo> {
-    if (!ai) {
-        console.warn("AI Service Disabled, returning mock word of the day. Reason:", aiInitializationError);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return Promise.resolve({
-            latin: "Shukran",
-            arabic: "شكرا",
-            definition: "Thank you. A fundamental expression of gratitude.",
-            examples: [
-                { latin: "Shukran bzaf!", arabic: "شكرا بزاف!", translation: "Thank you very much!" }
-            ]
-        });
-    }
     const langName = language === 'nl' ? 'Dutch' : 'English';
     const prompt = `Provide one interesting and common Moroccan Darija word that a beginner can learn. The definition and example translation should be in ${langName}. The word itself should not be a basic greeting like 'salam'. Provide its definition and one diverse example sentence with its ${langName} translation.`;
     return handleApiCall(prompt, wordInfoSchema);
@@ -492,11 +367,6 @@ const recommendedWordsSchema = {
 };
 
 export async function getRecommendedWords(language: 'en' | 'nl' = 'en'): Promise<WordInfo[]> {
-    if (!ai) {
-        console.warn("AI Service Disabled, returning mock recommended words. Reason:", aiInitializationError);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return Promise.resolve(mockRecommendedWords);
-    }
     const langName = language === 'nl' ? 'Dutch' : 'English';
     const prompt = `Provide 4 interesting and common Moroccan Darija words that a beginner can learn. For each word, provide its definition and one example sentence with its ${langName} translation. The words should be varied and not basic greetings like 'salam' or 'labas'.`;
     
@@ -506,12 +376,6 @@ export async function getRecommendedWords(language: 'en' | 'nl' = 'en'): Promise
 
 
 export async function generateWordQuiz(wordInfo: WordInfo): Promise<Quiz> {
-    if (!ai) {
-        console.warn("AI Service Disabled, returning mock word quiz. Reason:", aiInitializationError);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return Promise.resolve(mockQuiz);
-    }
-
     const prompt = `Generate a mini-quiz of 5 questions to help a user learn the Moroccan Darija word "${wordInfo.latin} / ${wordInfo.arabic}".
     
 The word means: "${wordInfo.definition}".
@@ -536,11 +400,7 @@ const chatResponseSchema = {
 };
 
 export function createChatSession(personality: string, history?: Content[]): Chat {
-    if (!ai) {
-        console.warn("AI Service Disabled, returning mock chat session. Reason:", aiInitializationError);
-        return mockChat as unknown as Chat;
-    }
-    if (!ai) throw new Error("AI services are disabled.");
+    if (!ai) throw new Error(AI_DISABLED_ERROR);
 
     const chatSystemInstruction = `You are a friendly and patient Darija tutor from Morocco. Your name is Fatima. Your goal is to have a simple, encouraging conversation with a language learner to help them practice.
 
@@ -572,12 +432,7 @@ export function createChatSession(personality: string, history?: Content[]): Cha
 }
 
 export async function getTopicExplanation(topic: LearningTopic, level: number): Promise<string> {
-    if (!ai) {
-        console.warn("AI Service Disabled, returning mock explanation. Reason:", aiInitializationError);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return Promise.resolve(`This is a mock explanation for ${topic} at level ${level}. A key concept to remember is to always practice consistently!`);
-    }
-    if (!ai) throw new Error("AI services are disabled.");
+    if (!ai) throw new Error(AI_DISABLED_ERROR);
 
     const prompt = `You are a Moroccan Darija tutor. A student is about to start a quiz. Give them a single, concise, encouraging, and helpful tip (2-3 sentences) related to the upcoming quiz.
 - Topic: ${topic}
@@ -622,21 +477,6 @@ const rootAnalysisSchema = {
 };
 
 export async function getTriliteralRoot(word: string): Promise<RootAnalysis> {
-     if (!ai) {
-        console.warn("AI Service Disabled, returning mock root analysis. Reason:", aiInitializationError);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return Promise.resolve({
-            root: "k-t-b",
-            meaning: "The concept of writing.",
-            relatedWords: [
-                { latin: "kteb", arabic: "كتب", english: "he wrote" },
-                { latin: "ktab", arabic: "كتاب", english: "book" },
-                { latin: "maktaba", arabic: "مكتبة", english: "library" },
-                { latin: "katib", arabic: "كاتب", english: "writer" },
-                { latin: "mektoub", arabic: "مكتوب", english: "written / destiny" }
-            ]
-        });
-    }
     const prompt = `Analyze the Moroccan Darija word "${word}". Identify its triliteral root (3 consonants, formatted like k-t-b). Provide the general meaning of the root, and a list of 5-7 related words derived from this root, with their Latin/Arabic script and English translation.`;
     const result = await handleApiCall(prompt, rootAnalysisSchema);
     return result;
@@ -669,15 +509,6 @@ const regionalDialectSchema = {
 };
 
 export async function getRegionalTranslations(phrase: string): Promise<DialectTranslation[]> {
-    if (!ai) {
-        console.warn("AI Service Disabled, returning mock translations. Reason:", aiInitializationError);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return [
-            { city: 'Casablanca', translation: { latin: `(mock) ${phrase} dial Casa`, arabic: `(mock) ${phrase} لهجة كازا` } },
-            { city: 'Fes', translation: { latin: `(mock) ${phrase} dial Fes`, arabic: `(mock) ${phrase} لهجة فاس` } },
-            { city: 'Marrakech', translation: { latin: `(mock) ${phrase} dial Marrakech`, arabic: `(mock) ${phrase} لهجة مراكش` } },
-        ];
-    }
     const prompt = `Translate the phrase "${phrase}" into the regional Moroccan Darija dialects for the cities of Casablanca, Fes, and Marrakech. Provide a distinct translation for each city.`;
     const result = await handleApiCall(prompt, regionalDialectSchema);
     return result.translations;
@@ -694,17 +525,6 @@ const pronunciationFeedbackSchema = {
 };
 
 export async function getPronunciationFeedback(targetWord: {latin: string, arabic: string}, userPronunciation: string): Promise<PronunciationFeedback> {
-    if (!ai) {
-        console.warn("AI Service Disabled, returning mock feedback. Reason:", aiInitializationError);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const isCorrect = userPronunciation.toLowerCase().includes(targetWord.latin.toLowerCase().charAt(0));
-        return {
-            isCorrect: isCorrect,
-            feedback: isCorrect 
-                ? `Mock feedback: Correct! Great job!` 
-                : `This is mock feedback. You said "${userPronunciation}". The target was "${targetWord.latin}". Try again!`
-        };
-    }
     const prompt = `A user learning Moroccan Darija was asked to pronounce the word "${targetWord.latin}" (${targetWord.arabic}).
     Using speech-to-text, we transcribed their pronunciation as "${userPronunciation}".
     
@@ -729,46 +549,20 @@ const phonemeExampleSchema = {
 };
 
 export async function getPhonemeExample(phoneme: string): Promise<{ latin: string, arabic: string, definition: string }> {
-    if (!ai) {
-        console.warn("AI Service Disabled, returning mock phoneme example. Reason:", aiInitializationError);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const mockExamples: Record<string, { latin: string; arabic: string; definition: string; }> = {
-            'ق': { latin: 'qahwa', arabic: 'قهوة', definition: 'Coffee' },
-            'غ': { latin: 'ghzal', arabic: 'غزال', definition: 'Gazelle / beautiful' },
-            'ح': { latin: 'henna', arabic: 'حناء', definition: 'Henna' },
-            'ع': { latin: 'aayn', arabic: 'عين', definition: 'Eye' },
-            'خ': { latin: 'khobz', arabic: 'خبز', definition: 'Bread' },
-            'ص': { latin: 'sber', arabic: 'صبر', definition: 'Patience' },
-            'ض': { latin: 'drb', arabic: 'ضرب', definition: 'To hit' },
-            'ط': { latin: 'tebla', arabic: 'طبلة', definition: 'Table' },
-            'ظ': { latin: 'dher', arabic: 'ظهر', definition: 'Back (body part)' },
-        };
-        const example = mockExamples[phoneme] || { latin: 'qahwa', arabic: 'قهوة', definition: 'Coffee' };
-        return {
-            latin: `${example.latin} (mock)`,
-            arabic: `${example.arabic} (mock)`,
-            definition: `${example.definition} (mock)`,
-        };
-    }
     const prompt = `Provide one common, simple Moroccan Darija word that contains the sound represented by the letter '${phoneme}'. For example, for 'ح', you could provide 'b7al'. For 'ق', you could provide 'qahwa'. Also provide a simple English definition for the word.`;
     return handleApiCall(prompt, phonemeExampleSchema);
 }
 
 export async function getTopicImage(topic: LearningTopic): Promise<string> {
+    if (!ai) throw new Error(AI_DISABLED_ERROR);
+    
     const localStorageKey = `topicImage_${topic.replace(' ', '')}`;
     const cachedImage = localStorage.getItem(localStorageKey);
     if (cachedImage) {
         return cachedImage;
     }
     
-    // Fallback for when AI services are disabled or if generation fails
     const fallbackImage = 'https://images.unsplash.com/photo-1558328423-3e3a47936a2d?q=80&w=1974&auto=format&fit=crop';
-
-    if (!ai) {
-        console.warn("AI Service Disabled, returning fallback image. Reason:", aiInitializationError);
-        return fallbackImage;
-    }
-    if (!ai) throw new Error("AI services are disabled.");
 
     let prompt = '';
     switch (topic) {
