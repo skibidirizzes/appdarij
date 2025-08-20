@@ -30,7 +30,8 @@ export const signInWithGoogle = async () => {
     provider.setCustomParameters({
         'auth_type': 'reauthenticate'
     });
-    return auth.signInWithPopup(provider);
+    // Changed from signInWithPopup to signInWithRedirect to fix Cross-Origin-Opener-Policy issues.
+    return auth.signInWithRedirect(provider);
 };
 
 export const signInAnonymously = async () => {
