@@ -1,11 +1,6 @@
 import { LearningTopic, Achievement, AchievementID, Quest, Sticker, StickerID, Story, UserProfile } from "./types.ts";
 import { TranslationKey } from "./localization/translations.ts";
 
-// --- DEVELOPMENT FLAG ---
-// This now automatically disables AI services if the API key is not provided in the environment.
-// The app will fall back to mock data, preventing crashes on deployment.
-export const ENABLE_AI_SERVICES = typeof process !== 'undefined' && !!process.env?.API_KEY;
-
 // This API key is included directly as requested by the user.
 // In a production environment, this should be handled via secure environment variables.
 export const ELEVENLABS_API_KEY = "sk_6fbfb0fcb94235b0bada5b63a9d843bcdff14442558d0970";

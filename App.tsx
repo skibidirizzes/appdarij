@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect, useCallback, useRef } from 'react';
 import { UserProvider, UserContext } from './context/UserContext.tsx';
 import { THEME_COLORS, LearningTopic, Quiz, QuizCache, View, WordInfo } from './types.ts';
-import { generateQuiz } from './services/geminiService.ts';
+import { generateQuiz, aiInitializationError } from './services/geminiService.ts';
 import { useTranslations } from './hooks/useTranslations.ts';
 import { useMediaQuery } from './hooks/useMediaQuery.ts';
 import { SpinnerIcon, SparklesIcon } from './components/icons/index.ts';
@@ -263,36 +263,44 @@ const MainAppLayout: React.FC = () => {
   }
 
   return (
-    <div className={`min-h-screen font-sans flex transition-colors duration-500 ${!user || isUserLoading ? 'bg-slate-900' : 'bg-transparent text-[var(--color-text-base)]'}`}>
-        {isMobile ? (
-            <BottomNav currentView={currentView.name} onNavigate={handleNavigate} />
-        ) : (
-            <Sidebar 
-                currentView={currentView.name} 
-                onNavigate={handleNavigate}
-                isCollapsed={isSidebarCollapsed}
-                onToggle={() => setIsSidebarCollapsed(prev => !prev)}
-            />
-        )}
-        
-        <main className={`flex-1 transition-all duration-300 ease-in-out w-full ${isMobile ? 'pb-20 pt-6 px-4' : `pt-8 pr-6 pl-8 ${isSidebarCollapsed ? 'md:pl-28' : 'md:pl-72'}`}`}>
-            <div className="animate-page-transition">
-                {renderView()}
-            </div>
-        </main>
-        
-        {showQuizToast && <QuizInProgressToast onResume={() => handleNavigate('quiz')} />}
-        <AchievementToast />
-        <InfoToast />
-        {showGuestPrompt && <GuestConversionPrompt onDismiss={() => {setShowGuestPrompt(false); sessionStorage.setItem('guestConversionDismissed', 'true'); }} />}
-        {foregroundMessage && <NotificationToast payload={foregroundMessage} onDismiss={() => setForegroundMessage(null)} />}
+    <>
+      {aiInitializationError && (
+          <div className="bg-red-800 text-white p-3 text-center font-semibold text-sm shadow-lg z-50 fixed top-0 left-0 right-0">
+              <p className="font-bold">AI Diagnostic Notice:</p>
+              <p>{aiInitializationError}</p>
+          </div>
+      )}
+      <div className={`min-h-screen font-sans flex transition-colors duration-500 ${!user || isUserLoading ? 'bg-slate-900' : 'bg-transparent text-[var(--color-text-base)]'} ${aiInitializationError ? 'pt-24 md:pt-16' : ''}`}>
+          {isMobile ? (
+              <BottomNav currentView={currentView.name} onNavigate={handleNavigate} />
+          ) : (
+              <Sidebar 
+                  currentView={currentView.name} 
+                  onNavigate={handleNavigate}
+                  isCollapsed={isSidebarCollapsed}
+                  onToggle={() => setIsSidebarCollapsed(prev => !prev)}
+              />
+          )}
+          
+          <main className={`flex-1 transition-all duration-300 ease-in-out w-full ${isMobile ? 'pb-20 pt-6 px-4' : `pt-8 pr-6 pl-8 ${isSidebarCollapsed ? 'md:pl-28' : 'md:pl-72'}`}`}>
+              <div className="animate-page-transition">
+                  {renderView()}
+              </div>
+          </main>
+          
+          {showQuizToast && <QuizInProgressToast onResume={() => handleNavigate('quiz')} />}
+          <AchievementToast />
+          <InfoToast />
+          {showGuestPrompt && <GuestConversionPrompt onDismiss={() => {setShowGuestPrompt(false); sessionStorage.setItem('guestConversionDismissed', 'true'); }} />}
+          {foregroundMessage && <NotificationToast payload={foregroundMessage} onDismiss={() => setForegroundMessage(null)} />}
 
-        {activePopup === 'profileSetup' && <ProfileSetupPopup onDismiss={() => setActivePopup(null)} />}
-        {activePopup === 'theme' && <ThemePromptPopup onDismiss={() => { setActivePopup(null); markThemePromptAsSeen(); }} />}
-        {activePopup === 'dailyGoal' && <DailyGoalPopup onDismiss={() => setActivePopup(null)} />}
-        {activePopup === 'friends' && <FriendsPromptPopup onDismiss={() => { setActivePopup(null); markFriendsPromptAsSeen(); }} onNavigate={handleNavigate}/> }
-        {activePopup === 'notification' && <NotificationPromptPopup />}
-    </div>
+          {activePopup === 'profileSetup' && <ProfileSetupPopup onDismiss={() => setActivePopup(null)} />}
+          {activePopup === 'theme' && <ThemePromptPopup onDismiss={() => { setActivePopup(null); markThemePromptAsSeen(); }} />}
+          {activePopup === 'dailyGoal' && <DailyGoalPopup onDismiss={() => setActivePopup(null)} />}
+          {activePopup === 'friends' && <FriendsPromptPopup onDismiss={() => { setActivePopup(null); markFriendsPromptAsSeen(); }} onNavigate={handleNavigate}/> }
+          {activePopup === 'notification' && <NotificationPromptPopup />}
+      </div>
+    </>
   )
 }
 

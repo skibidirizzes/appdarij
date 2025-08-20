@@ -39,6 +39,7 @@ export const UserContext = createContext<UserContextType>({
   respondToFriendRequest: async () => false,
   removeFriend: async () => false,
   mistakeAnalysis: null,
+  useStreakFreeze: async () => false,
 });
 
 
@@ -193,6 +194,39 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addInfoToast({ type: 'success', message: `Sync complete!` });
 
   }, [submitQuizResults, addInfoToast, user]);
+
+    const useStreakFreeze = useCallback(async (): Promise<boolean> => {
+    if (!user || user.streakFreeses.available <= 0) {
+        return false;
+    }
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (user.streakFreeses.lastUsedDate === todayStr) {
+        // Already used today
+        return false;
+    }
+
+    try {
+        const updates = {
+            'streakFreeses.available': firebase.firestore.FieldValue.increment(-1),
+            'streakFreeses.lastUsedDate': todayStr,
+        };
+        await updateUserProfile(user.uid, updates);
+        setUser(prev => {
+            if (!prev) return null;
+            return {
+                ...prev,
+                streakFreeses: {
+                    available: prev.streakFreeses.available - 1,
+                    lastUsedDate: todayStr,
+                }
+            };
+        });
+        return true;
+    } catch (error) {
+        console.error("Failed to use streak freeze:", error);
+        return false;
+    }
+  }, [user]);
   
   const resetAllData = async () => {};
   const clearProgress = () => {};
@@ -212,10 +246,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     respondToFriendRequest: async () => false,
     removeFriend: async () => false,
     mistakeAnalysis,
+    useStreakFreeze,
   }), [
     user, isLoading, updateUser, submitQuizResults, updateSettings, updateProfileDetails, logout, 
     newlyUnlockedAchievements, clearNewlyUnlockedAchievements, isLevelUnlocked,
-    addInfoToast, infoToasts, syncOfflineResults, activePopup, mistakeAnalysis, friends, incomingRequests, outgoingRequests
+    addInfoToast, infoToasts, syncOfflineResults, activePopup, mistakeAnalysis, friends, incomingRequests, outgoingRequests, useStreakFreeze
   ]);
 
   return (

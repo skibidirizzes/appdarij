@@ -157,6 +157,10 @@ export interface UserProfile {
   // Gamification
   streak: number;
   lastCompletedDate: string; // YYYY-MM-DD
+  streakFreeses: {
+      available: number;
+      lastUsedDate: string; // YYYY-MM-DD
+  };
   dailyXp: number;
   lastActivityDate: string; // YYYY-MM-DD
   weeklyProgress: WeeklyProgress;
@@ -398,6 +402,7 @@ export interface UserContextType {
   respondToFriendRequest: (fromUid: string, accept: boolean) => Promise<boolean>;
   removeFriend: (friendUid: string) => Promise<boolean>;
   mistakeAnalysis: string | null;
+  useStreakFreeze: () => Promise<boolean>;
 }
 
 // --- User Profile Utilities ---
@@ -428,6 +433,10 @@ export const createNewDefaultUser = (): Omit<UserProfile, 'uid' | 'email' | 'dis
       wordHistory: [],
       streak: 0,
       lastCompletedDate: '',
+      streakFreeses: {
+          available: 1, // Start with one
+          lastUsedDate: '',
+      },
       dailyXp: 0,
       lastActivityDate: now.toISOString().split('T')[0],
       weeklyProgress: { quizzes: 0, words: 0, dhGained: 0, date: getWeekIdentifier(now) },

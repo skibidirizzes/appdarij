@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type, Chat, Content } from "@google/genai";
 import { Quiz, LearningTopic, Mistake, WordInfo, RootAnalysis, QuizQuestion, UserAnswer, WordHistoryEntry, SentenceFormationQuestion, WritingQuestion, SpeakingQuestion, DialectTranslation, PronunciationFeedback } from '../types.ts';
-import { QUIZ_LENGTH, ENABLE_AI_SERVICES } from '../constants.ts';
+import { QUIZ_LENGTH } from '../constants.ts';
 
 // --- MOCK DATA ---
 const mockQuiz: Quiz = [
@@ -99,9 +99,26 @@ const mockChat = {
     }
 };
 
-// This is the secure way to handle API keys.
-// The key should be set in your environment variables, not here.
-const ai = ENABLE_AI_SERVICES ? new GoogleGenAI({ apiKey: process.env.API_KEY }) : null;
+// --- AI Initialization with Diagnostics ---
+
+// This will be exported so the UI can react to it.
+export let aiInitializationError: string | null = null;
+let ai: GoogleGenAI | null = null;
+
+try {
+    // This structure follows the user's setup constraints.
+    // In a browser, `process` is undefined, which will cause a ReferenceError.
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+        throw new Error("API_KEY environment variable not found.");
+    }
+    ai = new GoogleGenAI({ apiKey });
+    console.log("Gemini AI Initialized Successfully.");
+} catch (e) {
+    // This catch will handle both the `process` is not defined error and our thrown error.
+    aiInitializationError = `AI features could not be initialized. The application is running in a browser environment where 'process.env.API_KEY' is not available. Please ensure your development server is configured to expose environment variables to the client-side code. The application will now use mock data.`;
+    console.error("AI Initialization Failed:", e.message);
+}
 
 const quizOptionSchema = {
     type: Type.OBJECT,
@@ -286,8 +303,8 @@ async function handleApiCall(prompt: string, schema: object, isQuizCall?: boolea
 
 
 export async function generateQuiz(topic: LearningTopic, level: number, wordToReview?: WordInfo, wordsForSpacedRepetition?: WordHistoryEntry[], subCategory?: string): Promise<Quiz> {
-    if (!ENABLE_AI_SERVICES) {
-        console.log("AI Service Disabled: Returning mock quiz.");
+    if (!ai) {
+        console.warn("AI Service Disabled, returning mock quiz. Reason:", aiInitializationError);
         await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
         return Promise.resolve(mockQuiz.slice(0, QUIZ_LENGTH));
     }
@@ -338,8 +355,8 @@ export async function generateQuiz(topic: LearningTopic, level: number, wordToRe
 
 
 export async function analyzeMistakes(mistakes: Mistake[]): Promise<string> {
-    if (!ENABLE_AI_SERVICES) {
-        console.log("AI Service Disabled: Returning mock mistake analysis.");
+    if (!ai) {
+        console.warn("AI Service Disabled, returning mock mistake analysis. Reason:", aiInitializationError);
         await new Promise(resolve => setTimeout(resolve, 500));
         return Promise.resolve("This is mock feedback. You are doing great, but pay attention to verb conjugations and noun genders!");
     }
@@ -381,7 +398,8 @@ ${formattedMistakes}`;
 }
 
 export async function getMistakeExplanation(question: QuizQuestion, userAnswer: UserAnswer): Promise<string> {
-    if (!ENABLE_AI_SERVICES) {
+    if (!ai) {
+        console.warn("AI Service Disabled, returning mock explanation. Reason:", aiInitializationError);
         await new Promise(resolve => setTimeout(resolve, 500));
         return Promise.resolve("This is a mock explanation. The correct answer is right because it's not wrong!");
     }
@@ -434,8 +452,8 @@ const wordInfoSchema = {
 };
 
 export async function getWordInfo(word: string): Promise<WordInfo> {
-    if (!ENABLE_AI_SERVICES) {
-        console.log("AI Service Disabled: Returning mock word info.");
+    if (!ai) {
+        console.warn("AI Service Disabled, returning mock word info. Reason:", aiInitializationError);
         await new Promise(resolve => setTimeout(resolve, 500));
         return Promise.resolve(mockWordInfo);
     }
@@ -444,8 +462,8 @@ export async function getWordInfo(word: string): Promise<WordInfo> {
 }
 
 export async function getWordOfTheDay(language: 'en' | 'nl' = 'en'): Promise<WordInfo> {
-    if (!ENABLE_AI_SERVICES) {
-        console.log("AI Service Disabled: Returning mock word info for Word of the Day.");
+    if (!ai) {
+        console.warn("AI Service Disabled, returning mock word of the day. Reason:", aiInitializationError);
         await new Promise(resolve => setTimeout(resolve, 500));
         return Promise.resolve({
             latin: "Shukran",
@@ -474,8 +492,8 @@ const recommendedWordsSchema = {
 };
 
 export async function getRecommendedWords(language: 'en' | 'nl' = 'en'): Promise<WordInfo[]> {
-    if (!ENABLE_AI_SERVICES) {
-        console.log("AI Service Disabled: Returning mock recommended words.");
+    if (!ai) {
+        console.warn("AI Service Disabled, returning mock recommended words. Reason:", aiInitializationError);
         await new Promise(resolve => setTimeout(resolve, 500));
         return Promise.resolve(mockRecommendedWords);
     }
@@ -488,8 +506,8 @@ export async function getRecommendedWords(language: 'en' | 'nl' = 'en'): Promise
 
 
 export async function generateWordQuiz(wordInfo: WordInfo): Promise<Quiz> {
-    if (!ENABLE_AI_SERVICES) {
-        console.log("AI Service Disabled: Returning mock word quiz.");
+    if (!ai) {
+        console.warn("AI Service Disabled, returning mock word quiz. Reason:", aiInitializationError);
         await new Promise(resolve => setTimeout(resolve, 500));
         return Promise.resolve(mockQuiz);
     }
@@ -518,8 +536,8 @@ const chatResponseSchema = {
 };
 
 export function createChatSession(personality: string, history?: Content[]): Chat {
-    if (!ENABLE_AI_SERVICES) {
-        console.log("AI Service Disabled: Returning mock chat session.");
+    if (!ai) {
+        console.warn("AI Service Disabled, returning mock chat session. Reason:", aiInitializationError);
         return mockChat as unknown as Chat;
     }
     if (!ai) throw new Error("AI services are disabled.");
@@ -554,7 +572,8 @@ export function createChatSession(personality: string, history?: Content[]): Cha
 }
 
 export async function getTopicExplanation(topic: LearningTopic, level: number): Promise<string> {
-    if (!ENABLE_AI_SERVICES) {
+    if (!ai) {
+        console.warn("AI Service Disabled, returning mock explanation. Reason:", aiInitializationError);
         await new Promise(resolve => setTimeout(resolve, 500));
         return Promise.resolve(`This is a mock explanation for ${topic} at level ${level}. A key concept to remember is to always practice consistently!`);
     }
@@ -603,7 +622,8 @@ const rootAnalysisSchema = {
 };
 
 export async function getTriliteralRoot(word: string): Promise<RootAnalysis> {
-     if (!ENABLE_AI_SERVICES) {
+     if (!ai) {
+        console.warn("AI Service Disabled, returning mock root analysis. Reason:", aiInitializationError);
         await new Promise(resolve => setTimeout(resolve, 500));
         return Promise.resolve({
             root: "k-t-b",
@@ -649,7 +669,8 @@ const regionalDialectSchema = {
 };
 
 export async function getRegionalTranslations(phrase: string): Promise<DialectTranslation[]> {
-    if (!ENABLE_AI_SERVICES) {
+    if (!ai) {
+        console.warn("AI Service Disabled, returning mock translations. Reason:", aiInitializationError);
         await new Promise(resolve => setTimeout(resolve, 500));
         return [
             { city: 'Casablanca', translation: { latin: `(mock) ${phrase} dial Casa`, arabic: `(mock) ${phrase} لهجة كازا` } },
@@ -673,7 +694,8 @@ const pronunciationFeedbackSchema = {
 };
 
 export async function getPronunciationFeedback(targetWord: {latin: string, arabic: string}, userPronunciation: string): Promise<PronunciationFeedback> {
-    if (!ENABLE_AI_SERVICES) {
+    if (!ai) {
+        console.warn("AI Service Disabled, returning mock feedback. Reason:", aiInitializationError);
         await new Promise(resolve => setTimeout(resolve, 500));
         const isCorrect = userPronunciation.toLowerCase().includes(targetWord.latin.toLowerCase().charAt(0));
         return {
@@ -707,7 +729,8 @@ const phonemeExampleSchema = {
 };
 
 export async function getPhonemeExample(phoneme: string): Promise<{ latin: string, arabic: string, definition: string }> {
-    if (!ENABLE_AI_SERVICES) {
+    if (!ai) {
+        console.warn("AI Service Disabled, returning mock phoneme example. Reason:", aiInitializationError);
         await new Promise(resolve => setTimeout(resolve, 500));
         const mockExamples: Record<string, { latin: string; arabic: string; definition: string; }> = {
             'ق': { latin: 'qahwa', arabic: 'قهوة', definition: 'Coffee' },
@@ -741,7 +764,8 @@ export async function getTopicImage(topic: LearningTopic): Promise<string> {
     // Fallback for when AI services are disabled or if generation fails
     const fallbackImage = 'https://images.unsplash.com/photo-1558328423-3e3a47936a2d?q=80&w=1974&auto=format&fit=crop';
 
-    if (!ENABLE_AI_SERVICES) {
+    if (!ai) {
+        console.warn("AI Service Disabled, returning fallback image. Reason:", aiInitializationError);
         return fallbackImage;
     }
     if (!ai) throw new Error("AI services are disabled.");
