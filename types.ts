@@ -1,3 +1,4 @@
+import React from 'react';
 import { getWeek, getMonth } from 'date-fns';
 
 // Add to window type for Firebase Phone Auth
@@ -158,11 +159,6 @@ export interface UserProfile {
   lastCompletedDate: string; // YYYY-MM-DD
   dailyXp: number;
   lastActivityDate: string; // YYYY-MM-DD
-  streakFreeses: {
-      available: number;
-      lastUsedDate: string | null; // YYYY-MM-DD
-      lastMonthlyGrant: string | null; // YYYY-M
-  };
   weeklyProgress: WeeklyProgress;
   activeQuests: QuestProgress[];
   hasUsedConversation: boolean;
@@ -387,7 +383,6 @@ export interface UserContextType {
   clearNewlyUnlockedAchievements: () => void;
   isLevelUnlocked: (topic: LearningTopic, level: number) => boolean;
   enableNotifications: () => Promise<boolean>;
-  useStreakFreeze: () => Promise<boolean>;
   addInfoToast: (toast: Omit<InfoToastData, 'id'>) => void;
   infoToasts: InfoToastData[];
   syncOfflineResults: () => Promise<void>;
@@ -435,7 +430,6 @@ export const createNewDefaultUser = (): Omit<UserProfile, 'uid' | 'email' | 'dis
       lastCompletedDate: '',
       dailyXp: 0,
       lastActivityDate: now.toISOString().split('T')[0],
-      streakFreeses: { available: 1, lastUsedDate: null, lastMonthlyGrant: null },
       weeklyProgress: { quizzes: 0, words: 0, dhGained: 0, date: getWeekIdentifier(now) },
       activeQuests: [],
       hasUsedConversation: false,

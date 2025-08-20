@@ -16,7 +16,7 @@ const AchievementToast: React.FC<ToastProps> = ({ achievement, onDismiss }) => {
         return () => clearTimeout(timer);
     }, [onDismiss]);
     
-    const nameKey: TranslationKey = `achievement_${achievement.id}_name`;
+    const nameKey: TranslationKey = `achievement_${achievement.id}_name` as TranslationKey;
 
     return (
         <div 

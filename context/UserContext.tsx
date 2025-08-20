@@ -24,7 +24,6 @@ export const UserContext = createContext<UserContextType>({
   clearNewlyUnlockedAchievements: () => {},
   isLevelUnlocked: () => false,
   enableNotifications: async () => false,
-  useStreakFreeze: async () => false,
   addInfoToast: () => {},
   infoToasts: [],
   syncOfflineResults: async () => {},
@@ -165,20 +164,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addInfoToast({ type: 'info', message: 'Mistake history cleared.' });
   };
   
-  const useStreakFreeze = async (): Promise<boolean> => {
-    if (!user || user.streakFreeses.available <= 0) return false;
-    const todayStr = new Date().toISOString().split('T')[0];
-    if (user.streakFreeses.lastUsedDate === todayStr) return false;
-
-    const updates = {
-      'streakFreeses.available': firebase.firestore.FieldValue.increment(-1),
-      'streakFreeses.lastUsedDate': todayStr,
-    };
-    await updateUserProfile(user.uid, updates);
-    setUser(prev => prev ? ({...prev, streakFreeses: {...prev.streakFreeses, available: prev.streakFreeses.available - 1, lastUsedDate: todayStr }}) : null);
-    return true;
-   };
-
   const clearNewlyUnlockedAchievements = useCallback(() => setNewlyUnlockedAchievements([]), []);
   
   const isLevelUnlocked = useCallback((topic: LearningTopic, level: number): boolean => {
@@ -219,7 +204,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const contextValue = useMemo(() => ({
     user, isLoading, updateUser, submitQuizResults, updateSettings, updateProfileDetails,
     resetAllData, clearProgress, clearMistakes, logout, newlyUnlockedAchievements,
-    clearNewlyUnlockedAchievements, isLevelUnlocked, enableNotifications, useStreakFreeze,
+    clearNewlyUnlockedAchievements, isLevelUnlocked, enableNotifications,
     addInfoToast, infoToasts, syncOfflineResults, activePopup, setActivePopup,
     markThemePromptAsSeen, markFriendsPromptAsSeen, markNotificationPromptAsSeen,
     friends, incomingRequests, outgoingRequests,
@@ -229,7 +214,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     mistakeAnalysis,
   }), [
     user, isLoading, updateUser, submitQuizResults, updateSettings, updateProfileDetails, logout, 
-    newlyUnlockedAchievements, clearNewlyUnlockedAchievements, isLevelUnlocked, useStreakFreeze,
+    newlyUnlockedAchievements, clearNewlyUnlockedAchievements, isLevelUnlocked,
     addInfoToast, infoToasts, syncOfflineResults, activePopup, mistakeAnalysis, friends, incomingRequests, outgoingRequests
   ]);
 

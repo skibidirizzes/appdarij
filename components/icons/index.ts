@@ -28,7 +28,6 @@ export * from './WordOfTheDayIcon.tsx';
 export * from './MailIcon.tsx';
 export * from './ClockIcon.tsx';
 export * from './LeaderboardIcon.tsx';
-export * from './FreezeIcon.tsx';
 export * from './ExclamationTriangleIcon.tsx';
 export * from './DumbbellIcon.tsx';
 export * from './SunIcon.tsx';

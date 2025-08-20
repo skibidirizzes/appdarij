@@ -14,7 +14,16 @@ import HeaderStats from './HeaderStats.tsx';
 import HomeSidebarTabs from './HomeSidebarTabs.tsx';
 import Tooltip from '../common/Tooltip.tsx';
 import { TranslationKey } from '../../localization/translations.ts';
-import StreakFreezeCard from '../common/StreakFreezeCard.tsx';
+
+const VOCAB_SUB_CATEGORIES = [
+  { key: 'family', nameKey: 'vocab_family', englishName: 'Family & People', icon: '👨‍👩‍👧‍👦' },
+  { key: 'food', nameKey: 'vocab_food', englishName: 'Food & Dining', icon: '🍲' },
+  { key: 'travel', nameKey: 'vocab_travel', englishName: 'Travel & Directions', icon: '✈️' },
+  { key: 'emergency', nameKey: 'vocab_emergency', englishName: 'Emergency & Health', icon: '🚑' },
+  { key: 'greetings', nameKey: 'vocab_greetings', englishName: 'Greetings & Politeness', icon: '👋' },
+  { key: 'shopping', nameKey: 'vocab_shopping', englishName: 'Shopping & Money', icon: '🛍️' },
+] as const;
+
 
 const DarijaText: React.FC<{ text: { latin: string; arabic?: string; }; scriptMode: ScriptMode; as?: React.ElementType; className?: string; }> = ({ text, scriptMode, as: Component = 'span', className}) => {
   if (!text.arabic) {
@@ -36,7 +45,7 @@ const DarijaText: React.FC<{ text: { latin: string; arabic?: string; }; scriptMo
 };
 
 interface HomeViewProps {
-  onStartQuiz: (topic: LearningTopic, level: number, wordToReview?: WordInfo) => void;
+  onStartQuiz: (topic: LearningTopic, level: number, wordToReview?: WordInfo, subCategory?: string) => void;
   onStartCustomQuiz: (quiz: Quiz, topic: LearningTopic) => void;
   onNavigate: (view: View | { name: View; params?: any }) => void;
 }
@@ -59,10 +68,11 @@ const LearningPath: React.FC<{
     onStartQuiz: (topic: LearningTopic, level: number) => void;
     userProgress: any;
     t: (key: TranslationKey, replacements?: any) => string;
-}> = ({ topic, isLevelUnlocked, onStartQuiz, userProgress, t }) => {
+    subCategoryNameKey?: TranslationKey;
+}> = ({ topic, isLevelUnlocked, onStartQuiz, userProgress, t, subCategoryNameKey }) => {
     
     const topicInfo = useMemo(() => LEARNING_TOPICS.find(tInfo => tInfo.name === topic), [topic]);
-    const pathData = LEVEL_COORDS.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x}% ${c.y}%`).join(' ');
+    const pathData = LEVEL_COORDS.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ');
 
     if (!topicInfo) return null;
 
@@ -71,7 +81,10 @@ const LearningPath: React.FC<{
             <div className="flex items-center gap-4 mb-4">
                 {React.createElement(TopicIcons[topic], { className: "w-8 h-8 text-primary-400" })}
                 <div>
-                    <h3 className="text-xl font-bold text-white">{t(topicInfo.nameKey)}</h3>
+                    <h3 className="text-xl font-bold text-white">
+                        {t(topicInfo.nameKey)}
+                        {subCategoryNameKey && <span className="text-primary-400">: {t(subCategoryNameKey)}</span>}
+                    </h3>
                     <p className="text-sm text-slate-400">{t(topicInfo.descriptionKey)}</p>
                 </div>
             </div>
@@ -80,7 +93,7 @@ const LearningPath: React.FC<{
                     className="learning-path-bg"
                     style={{ backgroundImage: "url('https://images.unsplash.com/photo-1558328423-3e3a47936a2d?q=80&w=1974&auto=format&fit=crop')" }}
                 ></div>
-                <svg className="learning-path-svg">
+                <svg className="learning-path-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
                   <path d={pathData} stroke="var(--color-border-card)" strokeWidth="3" fill="none" strokeDasharray="5,5" />
                 </svg>
 
@@ -219,27 +232,12 @@ const MiniLeaderboard: React.FC<{ onNavigate: (view: View | { name: View; params
 }
 
 const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCustomQuiz }) => {
-  const { user, isLevelUnlocked, mistakeAnalysis, useStreakFreeze, addInfoToast } = useContext(UserContext);
+  const { user, isLevelUnlocked, mistakeAnalysis, addInfoToast } = useContext(UserContext);
   const [selectedTopic, setSelectedTopic] = useState<LearningTopic>('Vocabulary');
+  const [selectedVocabSubCategory, setSelectedVocabSubCategory] = useState<typeof VOCAB_SUB_CATEGORIES[number]['key'] | null>(null);
   const [wordOfTheDay, setWordOfTheDay] = useState<WordInfo | null>(null);
   const [isLoadingWord, setIsLoadingWord] = useState(true);
   const { t, language } = useTranslations();
-
-  const handleUseStreakFreeze = async () => {
-    const success = await useStreakFreeze();
-    if (success) {
-        addInfoToast({type: 'success', message: t('settings_streak_freeze_toast_success')});
-    } else {
-        addInfoToast({type: 'error', message: t('settings_streak_freeze_toast_fail')});
-    }
-    return success;
-  }
-
-  const todayStr = new Date().toISOString().split('T')[0];
-  const isFreezeUsedToday = user.streakFreeses.lastUsedDate === todayStr;
-  const nextFreezeDate = new Date();
-  nextFreezeDate.setMonth(nextFreezeDate.getMonth() + 1);
-  nextFreezeDate.setDate(1);
 
   useEffect(() => {
     const fetchWord = async () => {
@@ -369,6 +367,10 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCus
     if (!user || !suggestion) {
         return null; // Or a loading spinner
     }
+    
+    const subCat = selectedTopic === 'Vocabulary' && selectedVocabSubCategory 
+        ? VOCAB_SUB_CATEGORIES.find(sc => sc.key === selectedVocabSubCategory) 
+        : null;
 
     return (
         <div className="w-full space-y-8 animate-fade-in">
@@ -424,14 +426,57 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCus
                              {LEARNING_TOPICS.map(topicInfo => (
                                  <Button
                                      key={topicInfo.name}
-                                     onClick={() => setSelectedTopic(topicInfo.name)}
+                                     onClick={() => {
+                                        setSelectedTopic(topicInfo.name);
+                                        setSelectedVocabSubCategory(null);
+                                     }}
                                      className={selectedTopic === topicInfo.name ? '' : 'bg-slate-700/80 hover:bg-slate-600/80'}
                                  >
                                      {t(topicInfo.nameKey)}
                                  </Button>
                              ))}
                          </div>
-                        {selectedTopic && <LearningPath topic={selectedTopic} isLevelUnlocked={isLevelUnlocked} onStartQuiz={onStartQuiz} userProgress={user.progress} t={t} />}
+
+                        {selectedTopic === 'Vocabulary' && !selectedVocabSubCategory && (
+                            <Card className="p-6 animate-fade-in">
+                                <h3 className="text-xl font-bold text-white mb-4">Choose a Vocabulary Category</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    {VOCAB_SUB_CATEGORIES.map(subCat => (
+                                        <button
+                                            key={subCat.key}
+                                            onClick={() => setSelectedVocabSubCategory(subCat.key)}
+                                            className="p-4 rounded-lg bg-slate-700/80 hover:bg-slate-600/80 transition-all transform hover:scale-105"
+                                        >
+                                            <div className="text-4xl mb-2">{subCat.icon}</div>
+                                            <p className="font-semibold text-white">{t(subCat.nameKey)}</p>
+                                        </button>
+                                    ))}
+                                </div>
+                            </Card>
+                        )}
+                        
+                        {(selectedTopic !== 'Vocabulary' || selectedVocabSubCategory) && (
+                            <div className="animate-fade-in">
+                                {selectedTopic === 'Vocabulary' && selectedVocabSubCategory && (
+                                    <div className="mb-4">
+                                        <Button onClick={() => setSelectedVocabSubCategory(null)} size="sm" className="bg-slate-600 hover:bg-slate-500">
+                                            &larr; Back to Categories
+                                        </Button>
+                                    </div>
+                                )}
+                                {selectedTopic && <LearningPath 
+                                    topic={selectedTopic} 
+                                    isLevelUnlocked={isLevelUnlocked} 
+                                    subCategoryNameKey={subCat?.nameKey}
+                                    onStartQuiz={(topic, level) => {
+                                        const subCatFound = VOCAB_SUB_CATEGORIES.find(sc => sc.key === selectedVocabSubCategory);
+                                        onStartQuiz(topic, level, undefined, subCatFound?.englishName);
+                                    }}
+                                    userProgress={user.progress} 
+                                    t={t} 
+                                />}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -441,13 +486,6 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCus
                       src="https://cdn.dribbble.com/users/1092276/screenshots/6253995/camel_character_animation_dribbble.gif"
                       alt="Animated Mascot"
                       className="home-mascot animate-float"
-                    />
-                    <StreakFreezeCard 
-                        streakDays={user.streak}
-                        freezes={user.streakFreeses.available}
-                        nextFreezeDate={nextFreezeDate.toISOString()}
-                        usedToday={isFreezeUsedToday}
-                        onUseFreeze={handleUseStreakFreeze}
                     />
                      <Card className="p-6">
                          <h3 className="text-xl font-bold text-white mb-2">Quick Duel</h3>
