@@ -1,5 +1,14 @@
 import { getWeek, getMonth } from 'date-fns';
 
+// Add to window type for Firebase Phone Auth
+declare global {
+    interface Window {
+        recaptchaVerifier: any; // More specific type would be firebase.auth.RecaptchaVerifier
+        confirmationResult: any; // More specific type would be firebase.auth.ConfirmationResult
+    }
+}
+
+
 export type ThemeColorName = 'sky' | 'amber' | 'emerald' | 'rose' | 'fuchsia';
 export type ThemeMode = 'light' | 'dark';
 

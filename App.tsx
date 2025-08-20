@@ -209,6 +209,7 @@ const MainAppLayout: React.FC = () => {
       case 'quiz':
         return (
           <QuizView 
+            key={customQuiz ? `custom-${customQuiz[0].id}` : `${quizConfig?.topic}-${quizConfig?.level}-${quizConfig?.subCategory}-${quizConfig?.wordToReview?.latin}`}
             onQuizFinish={handleQuizFinish} 
             topic={quizConfig?.topic}
             level={quizConfig?.level}

@@ -1,6 +1,3 @@
-
-
-
 export * from './BookOpenIcon.tsx';
 export * from './CheckCircleIcon.tsx';
 export * from './XCircleIcon.tsx';
@@ -53,3 +50,5 @@ export * from './EyeIcon.tsx';
 export * from './EyeOffIcon.tsx';
 export * from './ShieldCheckIcon.tsx';
 export * from './UserIcon.tsx';
+export * from './MailIcon.tsx';
+export * from './PhoneIcon.tsx';

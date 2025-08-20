@@ -26,6 +26,10 @@ export const firestore = firebase.firestore();
 // --- Auth Functions ---
 export const signInWithGoogle = async () => {
     const provider = new firebase.auth.GoogleAuthProvider();
+    // This helps mitigate potential COOP issues with popups in some environments.
+    provider.setCustomParameters({
+        'auth_type': 'reauthenticate'
+    });
     return auth.signInWithPopup(provider);
 };
 
@@ -44,6 +48,30 @@ export const signInWithEmail = async (email, password) => {
 export const signOut = async () => {
     return auth.signOut();
 };
+
+// --- Phone Auth Functions ---
+export const setupRecaptchaVerifier = (elementId: string) => {
+    // Ensure it's only created once. window object is used to persist across renders.
+    if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+    }
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(elementId, {
+        'size': 'invisible',
+        'callback': (response) => {
+            // reCAPTCHA solved, allow signInWithPhoneNumber.
+            console.log("reCAPTCHA solved");
+        },
+        'expired-callback': () => {
+             console.log("reCAPTCHA expired");
+        }
+    });
+    return window.recaptchaVerifier;
+};
+
+export const signInWithPhoneNumber = (phoneNumber: string, verifier: any) => {
+    return auth.signInWithPhoneNumber(phoneNumber, verifier);
+};
+
 
 // --- User Profile Service (Firestore) ---
 const usersCollection = firestore.collection('users');

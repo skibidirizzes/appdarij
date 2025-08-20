@@ -69,10 +69,11 @@ const LearningPath: React.FC<{
     onStartQuiz: (topic: LearningTopic, level: number) => void;
     userProgress: any;
     t: (key: TranslationKey, replacements?: any) => string;
-}> = ({ topic, isLevelUnlocked, onStartQuiz, userProgress, t }) => {
+    subCategoryNameKey?: TranslationKey;
+}> = ({ topic, isLevelUnlocked, onStartQuiz, userProgress, t, subCategoryNameKey }) => {
     
     const topicInfo = useMemo(() => LEARNING_TOPICS.find(tInfo => tInfo.name === topic), [topic]);
-    const pathData = LEVEL_COORDS.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x}% ${c.y}%`).join(' ');
+    const pathData = LEVEL_COORDS.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ');
 
     if (!topicInfo) return null;
 
@@ -81,7 +82,10 @@ const LearningPath: React.FC<{
             <div className="flex items-center gap-4 mb-4">
                 {React.createElement(TopicIcons[topic], { className: "w-8 h-8 text-primary-400" })}
                 <div>
-                    <h3 className="text-xl font-bold text-white">{t(topicInfo.nameKey)}</h3>
+                    <h3 className="text-xl font-bold text-white">
+                        {t(topicInfo.nameKey)}
+                        {subCategoryNameKey && <span className="text-primary-400">: {t(subCategoryNameKey)}</span>}
+                    </h3>
                     <p className="text-sm text-slate-400">{t(topicInfo.descriptionKey)}</p>
                 </div>
             </div>
@@ -90,7 +94,7 @@ const LearningPath: React.FC<{
                     className="learning-path-bg"
                     style={{ backgroundImage: "url('https://images.unsplash.com/photo-1558328423-3e3a47936a2d?q=80&w=1974&auto=format&fit=crop')" }}
                 ></div>
-                <svg className="learning-path-svg">
+                <svg className="learning-path-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
                   <path d={pathData} stroke="var(--color-border-card)" strokeWidth="3" fill="none" strokeDasharray="5,5" />
                 </svg>
 
@@ -380,6 +384,10 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCus
     if (!user || !suggestion) {
         return null; // Or a loading spinner
     }
+    
+    const subCat = selectedTopic === 'Vocabulary' && selectedVocabSubCategory 
+        ? VOCAB_SUB_CATEGORIES.find(sc => sc.key === selectedVocabSubCategory) 
+        : null;
 
     return (
         <div className="w-full space-y-8 animate-fade-in">
@@ -476,9 +484,10 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCus
                                 {selectedTopic && <LearningPath 
                                     topic={selectedTopic} 
                                     isLevelUnlocked={isLevelUnlocked} 
+                                    subCategoryNameKey={subCat?.nameKey}
                                     onStartQuiz={(topic, level) => {
-                                        const subCat = VOCAB_SUB_CATEGORIES.find(sc => sc.key === selectedVocabSubCategory);
-                                        onStartQuiz(topic, level, undefined, subCat?.englishName);
+                                        const subCatFound = VOCAB_SUB_CATEGORIES.find(sc => sc.key === selectedVocabSubCategory);
+                                        onStartQuiz(topic, level, undefined, subCatFound?.englishName);
                                     }}
                                     userProgress={user.progress} 
                                     t={t} 

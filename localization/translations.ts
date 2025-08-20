@@ -522,6 +522,20 @@ const baseTranslations = {
     contact_subject_account: "Account Issue",
     contact_subject_other: "Other",
     button_back_to_settings: "Back to Settings",
+    // Streak Card
+    streak_card_title: "Streak Protection",
+    streak_card_description: "Use a Freeze to save your streak if you miss a day. You receive 1 new Freeze automatically each month.",
+    streak_card_next_refill: "Next monthly refill: {date}",
+    streak_card_available: "Available",
+    streak_card_freezes_unit: "{count} freeze",
+    streak_card_freezes_unit_plural: "{count} freezes",
+    streak_card_button_action: "Use a Freeze (for today)",
+    streak_card_button_used_today: "Already used today",
+    streak_card_button_used: "Freeze used",
+    streak_card_status_active: "Your streak is safe for today. 🎉",
+    streak_card_snackbar_message: "Freeze applied for today.",
+    streak_card_snackbar_undo: "Undo",
+    streak_card_streak_label: "day streak",
   },
   nl: {
     // Shared
@@ -956,6 +970,20 @@ const baseTranslations = {
     contact_subject_account: "Accountprobleem",
     contact_subject_other: "Anders",
     button_back_to_settings: "Terug naar Instellingen",
+    // Streak Card
+    streak_card_title: "Reeksbescherming",
+    streak_card_description: "Gebruik een Freeze om je streak te bewaren als je een dag mist. Je ontvangt elke maand automatisch 1 nieuwe Freeze.",
+    streak_card_next_refill: "Volgende maandelijkse aanvulling: {date}",
+    streak_card_available: "Beschikbaar",
+    streak_card_freezes_unit: "{count} freeze",
+    streak_card_freezes_unit_plural: "{count} freezes",
+    streak_card_button_action: "Gebruik een Freeze (voor vandaag)",
+    streak_card_button_used_today: "Al gebruikt vandaag",
+    streak_card_button_used: "Freeze gebruikt",
+    streak_card_status_active: "Je streak is veilig voor vandaag. 🎉",
+    streak_card_snackbar_message: "Freeze toegepast op vandaag.",
+    streak_card_snackbar_undo: "Ongedaan maken",
+    streak_card_streak_label: "dagen reeks",
   }
 };
 

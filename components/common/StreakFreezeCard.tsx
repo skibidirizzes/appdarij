@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { useTranslations } from "../../hooks/useTranslations.ts";
 
 /**
  * Fancy, interactieve "Streak Protection" kaart
@@ -36,7 +37,7 @@ const Snowflake = ({ className = "" }) => (
   </svg>
 );
 
-const ProgressRing: React.FC<{ value: number }> = ({ value }) => {
+const ProgressRing: React.FC<{ value: number, label: string }> = ({ value, label }) => {
   const radius = 28;
   const stroke = 6;
   const norm = Math.max(0, Math.min(100, value));
@@ -48,7 +49,7 @@ const ProgressRing: React.FC<{ value: number }> = ({ value }) => {
         cx="40"
         cy="40"
         r={radius}
-        stroke="rgba(255,255,255,0.1)"
+        stroke="var(--color-bg-input)"
         strokeWidth={stroke}
         fill="none"
       />
@@ -66,31 +67,40 @@ const ProgressRing: React.FC<{ value: number }> = ({ value }) => {
       />
       <defs>
         <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#60a5fa" />
-          <stop offset="100%" stopColor="#22d3ee" />
+          <stop offset="0%" stopColor="var(--color-primary-400)" />
+          <stop offset="100%" stopColor="var(--color-primary-300)" />
         </linearGradient>
       </defs>
+       <foreignObject x="0" y="0" width="80" height="80">
+        <div className="absolute inset-0 grid place-items-center">
+            <div className="text-center">
+              <div className="text-2xl font-extrabold tracking-tight">{value}</div>
+              <div className="text-[11px] uppercase tracking-wider text-slate-400">{label}</div>
+            </div>
+        </div>
+      </foreignObject>
     </svg>
   );
 };
 
-const Token: React.FC<{ active: boolean }> = ({ active }) => (
+const Token: React.FC<{ active: boolean, label: string }> = ({ active, label }) => (
   <div
     className={
       "relative flex items-center justify-center w-9 h-9 rounded-xl border " +
       (active
-        ? "bg-sky-500/20 border-sky-400/50 text-sky-300 shadow-[0_0_20px_rgba(56,189,248,.25)]"
+        ? "bg-primary-900/50 border-primary-500/50 text-primary-300 shadow-[0_0_20px_var(--ring-color)]"
         : "bg-slate-800/60 border-slate-600 text-slate-500")
     }
-    aria-label={active ? "Freeze beschikbaar" : "Geen freeze"}
+    aria-label={label}
   >
     <Snowflake className={active ? "animate-pulse" : "opacity-50"} />
   </div>
 );
 
-const Snack: React.FC<{ open: boolean; message: string; action?: () => void }> = ({
+const Snack: React.FC<{ open: boolean; message: string; actionText: string; action?: () => void }> = ({
   open,
   message,
+  actionText,
   action,
 }) => {
   if (!open) return null;
@@ -103,7 +113,7 @@ const Snack: React.FC<{ open: boolean; message: string; action?: () => void }> =
             onClick={action}
             className="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600"
           >
-            Ongedaan maken
+            {actionText}
           </button>
         )}
       </div>
@@ -141,6 +151,7 @@ export default function StreakFreezeCard({
   usedToday,
   onUseFreeze,
 }: Props) {
+  const { t } = useTranslations();
   const [loading, setLoading] = useState(false);
   const [used, setUsed] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
@@ -179,42 +190,40 @@ export default function StreakFreezeCard({
     setUsed(false);
     setUndoOpen(false);
   };
+  
+  const freezesText = freezes === 1 
+    ? t('streak_card_freezes_unit', { count: freezes }) 
+    : t('streak_card_freezes_unit_plural', { count: freezes });
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-900 text-slate-200 p-5 shadow-2xl"
+      className="relative overflow-hidden rounded-2xl border border-[var(--color-border-card)] bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-900 text-slate-200 p-5 shadow-2xl"
       role="region"
-      aria-label="Streak Protection"
+      aria-label={t('streak_card_title')}
     >
       {/* achtergrond glow */}
-      <div className="absolute -right-24 -top-24 h-56 w-56 rounded-full bg-sky-500/10 blur-3xl"/>
+      <div className="absolute -right-24 -top-24 h-56 w-56 rounded-full bg-primary-500/10 blur-3xl"/>
 
       <Confetti show={confetti} />
 
       <div className="flex flex-col md:flex-row md:items-center gap-5">
         {/* progress ring */}
         <div className="relative flex items-center justify-center">
-          <ProgressRing value={progress} />
-          <div className="absolute inset-0 grid place-items-center">
-            <div className="text-center">
-              <div className="text-2xl font-extrabold tracking-tight">{streakDays}</div>
-              <div className="text-[11px] uppercase tracking-wider text-slate-400">day streak</div>
-            </div>
-          </div>
+          <ProgressRing value={streakDays} label={t('streak_card_streak_label')} />
         </div>
 
         {/* copy */}
         <div className="flex-1 min-w-[220px]">
           <h3 className="text-lg font-bold flex items-center gap-2">
-            <Snowflake className="text-sky-300" />
-            Streak Protection
+            <Snowflake className="text-primary-300" />
+            {t('streak_card_title')}
           </h3>
           <p className="text-slate-400 mt-1">
-            Gebruik een Freeze om je streak te bewaren als je een dag mist. Je ontvangt elke maand automatisch 1 nieuwe Freeze.
+            {t('streak_card_description')}
           </p>
           {!!nextFreezeDate && (
             <p className="text-xs text-slate-500 mt-2">
-              Volgende maandelijkse aanvulling: <span className="text-slate-300">{formatDate(nextFreezeDate)}</span>
+              {t('streak_card_next_refill', { date: formatDate(nextFreezeDate) })}
             </p>
           )}
         </div>
@@ -222,14 +231,12 @@ export default function StreakFreezeCard({
         {/* tokens + knop */}
         <div className="flex flex-col items-stretch gap-3 md:w-64">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-400">Beschikbaar</span>
-            <span className="text-sm font-semibold text-slate-200">
-              {freezes} {freezes === 1 ? "freeze" : "freezes"}
-            </span>
+            <span className="text-sm text-slate-400">{t('streak_card_available')}</span>
+            <span className="text-sm font-semibold text-slate-200">{freezesText}</span>
           </div>
           <div className="flex gap-2">
             {[0, 1, 2].map((i) => (
-              <Token key={i} active={i < freezes} />
+              <Token key={i} active={i < freezes} label={i < freezes ? "Freeze available" : "No freeze"}/>
             ))}
           </div>
 
@@ -239,25 +246,26 @@ export default function StreakFreezeCard({
             className={
               "group relative inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-semibold transition-all " +
               (canUse
-                ? "bg-gradient-to-r from-sky-500 to-cyan-400 text-slate-900 hover:brightness-110 focus:outline-none focus:ring-4 focus:ring-sky-400/40"
+                ? "bg-gradient-to-r from-[var(--color-primary-500)] to-[var(--color-primary-400)] text-on-primary hover:brightness-110 focus:outline-none focus:ring-4 focus:ring-[var(--ring-color)]"
                 : "bg-slate-700 text-slate-400 cursor-not-allowed")
             }
             aria-live="polite"
           >
             <span className="relative flex items-center gap-2">
               <Snowflake className="group-enabled:animate-[spin_6s_linear_infinite]" />
-              {usedToday ? "Al gebruikt vandaag" : used ? "Freeze gebruikt" : "Use a Freeze (for today)"}
+              {usedToday ? t('streak_card_button_used_today') : used ? t('streak_card_button_used') : t('streak_card_button_action')}
             </span>
           </button>
           {(used || usedToday) && (
-            <p className="text-xs text-emerald-300">Je streak is veilig voor vandaag. 🎉</p>
+            <p className="text-xs text-emerald-300">{t('streak_card_status_active')}</p>
           )}
         </div>
       </div>
 
       <Snack
         open={undoOpen}
-        message="Freeze toegepast op vandaag."
+        message={t('streak_card_snackbar_message')}
+        actionText={t('streak_card_snackbar_undo')}
         action={handleUndo}
       />
     </div>
