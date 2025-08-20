@@ -5,28 +5,53 @@ import { QUIZ_LENGTH } from '../constants.ts';
 // --- AI Initialization with Diagnostics ---
 
 // This will be exported so the UI can react to it.
+// --- AI Initialization with Diagnostics ---
+
 export let aiInitializationError: string | null = null;
 let ai: GoogleGenAI | null = null;
-const AI_DISABLED_ERROR = "AI services are disabled because the API key is not available.";
+const AI_DISABLED_ERROR =
+  "AI services are disabled because an API key is not available.";
 
-// In a browser environment, `process` is typically not defined.
-// The application relies on the execution environment (like a specific hosting platform or a build tool)
-// to make the API_KEY available via `process.env.API_KEY`.
-if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-    try {
-        ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        console.log("Gemini AI Initialized Successfully.");
-    } catch (e) {
-        const error = e as Error;
-        aiInitializationError = `Gemini AI initialization failed even with an API key. Error: ${error.message}. AI features are disabled.`;
-        console.error("AI Initialization Failed:", error.message);
-        ai = null; // Ensure ai is null on failure
-    }
-} else {
-    // This block will be hit in a standard browser environment.
-    aiInitializationError = `AI Initialization Failed: API_KEY not found. For security reasons, browser-based applications cannot directly access system environment variables. This app requires a specialized hosting environment that securely provides the API key. Without it, AI features are disabled.`;
-    console.error("AI Initialization Failed: 'process.env.API_KEY' is not available in this environment.");
+// Haal de key op, werkt voor Vercel + Vite + Next.js (client of server)
+function resolveApiKey(): string | undefined {
+  // Server-side (Vercel Functions / Next.js server)
+  if (typeof window === "undefined") {
+    return (
+      process.env.API_KEY || // server-only key
+      process.env.NEXT_PUBLIC_API_KEY || // als iemand 'm toch publiek zette
+      process.env.VITE_API_KEY // idem
+    );
+  }
+
+  // Client-side:
+  // Vite bundelt alleen variabelen met prefix VITE_
+  // @ts-ignore
+  if (typeof import !== "undefined" && typeof import.meta !== "undefined" && import.meta.env?.VITE_API_KEY) {
+    // @ts-ignore
+    return import.meta.env.VITE_API_KEY as string;
+  }
+
+  // Next.js bundelt alleen variabelen met prefix NEXT_PUBLIC_
+  // (wordt bij build-time vervangen)
+  // @ts-ignore
+  return (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_KEY) || undefined;
 }
+
+try {
+  const apiKey = resolveApiKey();
+  if (!apiKey) throw new Error("No API key found in this runtime.");
+
+  ai = new GoogleGenAI({ apiKey });
+  console.log("Gemini AI Initialized Successfully.");
+} catch (e: any) {
+  ai = null;
+  aiInitializationError =
+    "Gemini AI initialization failed: no usable API key found. " +
+    "Provide VITE_API_KEY (Vite) of NEXT_PUBLIC_API_KEY (Next) voor client-side, " +
+    "of API_KEY voor server-side gebruik.";
+  console.error("AI Initialization Failed:", e?.message || e);
+}
+
 
 const quizOptionSchema = {
     type: Type.OBJECT,
