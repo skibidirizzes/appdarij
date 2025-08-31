@@ -3,14 +3,16 @@ import { UserContext } from '../../context/UserContext.tsx';
 import Modal from '../common/Modal.tsx';
 import Button from '../common/Button.tsx';
 import { UserIcon } from '../icons/index.ts';
+import { UserProfile } from '../../types.ts';
 
 interface ProfileSetupPopupProps {
     onDismiss: () => void;
 }
 
 export const ProfileSetupPopup: React.FC<ProfileSetupPopupProps> = ({ onDismiss }) => {
-    const { updateProfileDetails, addInfoToast } = useContext(UserContext);
-    const [selectedAvatar, setSelectedAvatar] = useState<string>('');
+    const { user, updateProfileDetails, addInfoToast } = useContext(UserContext);
+    const [displayName, setDisplayName] = useState(user?.displayName || '');
+    const [selectedAvatar, setSelectedAvatar] = useState<string>(user?.photoURL || '');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const generatedAvatars = useMemo(() => {
@@ -39,11 +41,18 @@ export const ProfileSetupPopup: React.FC<ProfileSetupPopupProps> = ({ onDismiss 
     };
 
     const handleSave = () => {
-        if (selectedAvatar) {
-            updateProfileDetails({ photoURL: selectedAvatar, hasCompletedOnboarding: true });
-        } else {
-            updateProfileDetails({ hasCompletedOnboarding: true });
+        const detailsToUpdate: Partial<Pick<UserProfile, 'displayName' | 'photoURL' | 'hasCompletedOnboarding'>> = {
+            hasCompletedOnboarding: true,
+        };
+
+        if (selectedAvatar && selectedAvatar !== user?.photoURL) {
+            detailsToUpdate.photoURL = selectedAvatar;
         }
+        if (displayName.trim() && displayName.trim() !== user?.displayName) {
+            detailsToUpdate.displayName = displayName.trim();
+        }
+
+        updateProfileDetails(detailsToUpdate);
         onDismiss();
     };
     
@@ -57,8 +66,21 @@ export const ProfileSetupPopup: React.FC<ProfileSetupPopupProps> = ({ onDismiss 
             <div className="p-6 text-center">
                 <UserIcon className="w-12 h-12 mx-auto text-primary-400 mb-4" />
                 <p className="text-[var(--color-text-muted)] mb-6">
-                    Choose an avatar to get started.
+                    Choose an avatar and set your display name to get started.
                 </p>
+                
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Display Name</label>
+                    <input 
+                        type="text" 
+                        value={displayName}
+                        onChange={e => setDisplayName(e.target.value)}
+                        placeholder="Enter your name"
+                        className="w-full p-2 bg-slate-700 border-2 border-slate-600 rounded-lg text-white"
+                    />
+                </div>
+
+                <p className="block text-sm font-medium text-slate-300 mb-2">Choose an Avatar</p>
                 <div className="grid grid-cols-5 gap-3 mb-6">
                     {generatedAvatars.map(url => (
                         <button key={url} onClick={() => handleAvatarSelect(url)} className={`rounded-full transition-all duration-200 ${selectedAvatar === url ? 'ring-4 ring-primary-500 scale-110' : 'ring-2 ring-transparent hover:scale-105'}`}>
@@ -66,6 +88,7 @@ export const ProfileSetupPopup: React.FC<ProfileSetupPopupProps> = ({ onDismiss 
                         </button>
                     ))}
                 </div>
+
                 <div className="mb-6">
                     <Button onClick={() => fileInputRef.current?.click()} className="w-full bg-slate-600 hover:bg-slate-500">
                         Upload Your Own
@@ -73,18 +96,11 @@ export const ProfileSetupPopup: React.FC<ProfileSetupPopupProps> = ({ onDismiss 
                     <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
                 </div>
                 
-                {selectedAvatar && !generatedAvatars.includes(selectedAvatar) && (
-                    <div className="mb-4">
-                        <p className="text-sm font-semibold mb-2">Your selection:</p>
-                        <img src={selectedAvatar} alt="Selected avatar" className="w-20 h-20 rounded-full mx-auto ring-4 ring-primary-500" />
-                    </div>
-                )}
-                
                 <div className="flex flex-col sm:flex-row gap-4">
                     <Button onClick={handleSkip} size="lg" className="w-full bg-slate-600 hover:bg-slate-500">
                        Skip for Now
                     </Button>
-                    <Button onClick={handleSave} size="lg" className="w-full" disabled={!selectedAvatar}>
+                    <Button onClick={handleSave} size="lg" className="w-full" disabled={!displayName.trim()}>
                        Save & Continue
                     </Button>
                 </div>

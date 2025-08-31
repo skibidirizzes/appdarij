@@ -14,7 +14,6 @@ import HeaderStats from './HeaderStats.tsx';
 import HomeSidebarTabs from './HomeSidebarTabs.tsx';
 import Tooltip from '../common/Tooltip.tsx';
 import { TranslationKey } from '../../localization/translations.ts';
-import StreakFreezeCard from '../common/StreakFreezeCard.tsx';
 
 const VOCAB_SUB_CATEGORIES = [
   { key: 'family', nameKey: 'vocab_family', englishName: 'Family & People', icon: '👨‍👩‍👧‍👦' },
@@ -233,28 +232,12 @@ const MiniLeaderboard: React.FC<{ onNavigate: (view: View | { name: View; params
 }
 
 const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCustomQuiz }) => {
-  const { user, isLevelUnlocked, mistakeAnalysis, useStreakFreeze, addInfoToast } = useContext(UserContext);
+  const { user, isLevelUnlocked, mistakeAnalysis, addInfoToast } = useContext(UserContext);
   const [selectedTopic, setSelectedTopic] = useState<LearningTopic>('Vocabulary');
   const [selectedVocabSubCategory, setSelectedVocabSubCategory] = useState<typeof VOCAB_SUB_CATEGORIES[number]['key'] | null>(null);
   const [wordOfTheDay, setWordOfTheDay] = useState<WordInfo | null>(null);
   const [isLoadingWord, setIsLoadingWord] = useState(true);
   const { t, language } = useTranslations();
-
-  const handleUseStreakFreeze = async () => {
-    const success = await useStreakFreeze();
-    if (success) {
-        addInfoToast({type: 'success', message: t('settings_streak_freeze_toast_success')});
-    } else {
-        addInfoToast({type: 'error', message: t('settings_streak_freeze_toast_fail')});
-    }
-    return success;
-  }
-
-  const todayStr = new Date().toISOString().split('T')[0];
-  const isFreezeUsedToday = user.streakFreeses.lastUsedDate === todayStr;
-  const nextFreezeDate = new Date();
-  nextFreezeDate.setMonth(nextFreezeDate.getMonth() + 1);
-  nextFreezeDate.setDate(1);
 
   useEffect(() => {
     const fetchWord = async () => {
@@ -503,13 +486,6 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCus
                       src="https://cdn.dribbble.com/users/1092276/screenshots/6253995/camel_character_animation_dribbble.gif"
                       alt="Animated Mascot"
                       className="home-mascot animate-float"
-                    />
-                    <StreakFreezeCard 
-                        streakDays={user.streak}
-                        freezes={user.streakFreeses.available}
-                        nextFreezeDate={nextFreezeDate.toISOString()}
-                        usedToday={isFreezeUsedToday}
-                        onUseFreeze={handleUseStreakFreeze}
                     />
                      <Card className="p-6">
                          <h3 className="text-xl font-bold text-white mb-2">Quick Duel</h3>

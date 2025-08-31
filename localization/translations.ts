@@ -100,6 +100,7 @@ const baseTranslations = {
     button_back: "Back",
     // Auth
     auth_google_signin: "Sign in with Google",
+    auth_google_signup: "Sign up with Google",
     auth_or_continue_with: "Or continue with",
     auth_guest_button: "Continue as Guest",
     auth_signin_title: "Sign in to continue",
@@ -327,22 +328,6 @@ const baseTranslations = {
     settings_logout_title: "Account",
     settings_logout_description: "Sign out of your current account.",
     settings_logout_button: "Sign Out",
-    // Streak Freeze Card
-    settings_streak_freeze_toast_success: "Streak Freeze activated! Your streak is safe for today.",
-    settings_streak_freeze_toast_fail: "Could not use Streak Freeze.",
-    streak_card_title: "Streak Protection",
-    streak_card_description: "Missed a day? Use a Streak Freeze to keep your streak alive.",
-    streak_card_available: "Available",
-    streak_card_freezes_unit: "{count} Freeze",
-    streak_card_freezes_unit_plural: "{count} Freezes",
-    streak_card_next_refill: "Next refill on {date}",
-    streak_card_streak_label: "Streak",
-    streak_card_button_action: "Use Streak Freeze",
-    streak_card_button_used: "Freeze Used",
-    streak_card_button_used_today: "Active Today",
-    streak_card_status_active: "Your streak is protected for today!",
-    streak_card_snackbar_message: "Streak Freeze used.",
-    streak_card_snackbar_undo: "Undo",
     // Dictionary View
     dictionary_title: "Dictionary",
     dictionary_explorer_tab: "Explorer",
@@ -530,6 +515,21 @@ const baseTranslations = {
     contact_subject_account: "Account Issue",
     contact_subject_other: "Other",
     button_back_to_settings: "Back to Settings",
+    // FIX: Added missing keys for StreakFreezeCard
+    // Streak Freeze Card
+    streak_card_title: "Streak Protection",
+    streak_card_description: "Missed a day? Use a Streak Freeze to keep your streak.",
+    streak_card_streak_label: "Days",
+    streak_card_next_refill: "Next refill on {date}",
+    streak_card_available: "Available",
+    streak_card_freezes_unit: "{count} Freeze",
+    streak_card_freezes_unit_plural: "{count} Freezes",
+    streak_card_button_action: "Use a Freeze",
+    streak_card_button_used: "Freeze Used",
+    streak_card_button_used_today: "Used Today",
+    streak_card_status_active: "Your streak is safe for today!",
+    streak_card_snackbar_message: "Streak Freeze activated!",
+    streak_card_snackbar_undo: "Undo",
   },
   nl: {
     // Shared
@@ -542,6 +542,7 @@ const baseTranslations = {
     button_back: "Terug",
     // Auth
     auth_google_signin: "Log in met Google",
+    auth_google_signup: "Registreer met Google",
     auth_or_continue_with: "Of ga verder met",
     auth_guest_button: "Ga verder als Gast",
     auth_signin_title: "Log in om door te gaan",
@@ -769,22 +770,6 @@ const baseTranslations = {
     settings_logout_title: "Account",
     settings_logout_description: "Log uit bij je huidige account.",
     settings_logout_button: "Uitloggen",
-    // Streak Freeze Card
-    settings_streak_freeze_toast_success: "Streak Freeze geactiveerd! Je reeks is vandaag veilig.",
-    settings_streak_freeze_toast_fail: "Kon Streak Freeze niet gebruiken.",
-    streak_card_title: "Reeksbescherming",
-    streak_card_description: "Een dag gemist? Gebruik een Streak Freeze om je reeks te behouden.",
-    streak_card_available: "Beschikbaar",
-    streak_card_freezes_unit: "{count} Freeze",
-    streak_card_freezes_unit_plural: "{count} Freezes",
-    streak_card_next_refill: "Volgende aanvulling op {date}",
-    streak_card_streak_label: "Reeks",
-    streak_card_button_action: "Gebruik Streak Freeze",
-    streak_card_button_used: "Freeze Gebruikt",
-    streak_card_button_used_today: "Vandaag Actief",
-    streak_card_status_active: "Je reeks is vandaag beschermd!",
-    streak_card_snackbar_message: "Streak Freeze gebruikt.",
-    streak_card_snackbar_undo: "Ongedaan maken",
     // Dictionary View
     dictionary_title: "Woordenboek",
     dictionary_explorer_tab: "Verkenner",
@@ -972,6 +957,21 @@ const baseTranslations = {
     contact_subject_account: "Accountprobleem",
     contact_subject_other: "Anders",
     button_back_to_settings: "Terug naar Instellingen",
+    // FIX: Added missing keys for StreakFreezeCard
+    // Streak Freeze Card
+    streak_card_title: "Reeksbescherming",
+    streak_card_description: "Een dag gemist? Gebruik een Reeksbevriezing om je reeks te behouden.",
+    streak_card_streak_label: "Dagen",
+    streak_card_next_refill: "Volgende aanvulling op {date}",
+    streak_card_available: "Beschikbaar",
+    streak_card_freezes_unit: "{count} Bevriezing",
+    streak_card_freezes_unit_plural: "{count} Bevriezingen",
+    streak_card_button_action: "Gebruik een Bevriezing",
+    streak_card_button_used: "Bevriezing Gebruikt",
+    streak_card_button_used_today: "Vandaag Gebruikt",
+    streak_card_status_active: "Je reeks is veilig voor vandaag!",
+    streak_card_snackbar_message: "Reeksbevriezing geactiveerd!",
+    streak_card_snackbar_undo: "Ongedaan maken",
   }
 };
 

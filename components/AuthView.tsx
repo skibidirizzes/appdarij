@@ -42,7 +42,7 @@ const countries = [
 ];
 
 const AuthView: React.FC = () => {
-    const [isLogin, setIsLogin] = useState(false);
+    const [isLogin, setIsLogin] = useState(true);
     const [authMode, setAuthMode] = useState<'email' | 'phone'>('email');
     
     const [email, setEmail] = useState('');
@@ -54,7 +54,6 @@ const AuthView: React.FC = () => {
     const { t } = useTranslations();
 
     // Sign up state
-    const [signUpStep, setSignUpStep] = useState(0);
     const [displayName, setDisplayName] = useState('');
     const [passwordConfirm, setPasswordConfirm] = useState('');
     
@@ -103,11 +102,8 @@ const AuthView: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            if (authMode === 'email') {
-                 await signInWithEmail(email, password);
-            } else {
-                // Phone login is handled via OTP verification
-            }
+            await signInWithEmail(email, password);
+            // onAuthStateChanged in UserContext will handle the rest
         } catch (err) {
             handleAuthError(err);
         } finally {
@@ -137,12 +133,8 @@ const AuthView: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            const userCredential = await window.confirmationResult.confirm(otp);
-            if (userCredential.additionalUserInfo.isNewUser) {
-                // If new user, proceed to create profile
-                setSignUpStep(1); // Go to display name step
-            }
-            // Existing user is now logged in. onAuthStateChanged handles the rest.
+            await window.confirmationResult.confirm(otp);
+            // onAuthStateChanged in UserContext will handle both new and existing users
         } catch (err) {
             handleAuthError(err);
         } finally {
@@ -166,34 +158,18 @@ const AuthView: React.FC = () => {
         setLoading(true);
         setError(null);
 
+        if (password !== passwordConfirm) {
+            setError(t('auth_error_password_mismatch'));
+            setLoading(false);
+            return;
+        }
+
         try {
-            let userCredential;
-            if (authMode === 'email') {
-                if (password !== passwordConfirm) {
-                    setError(t('auth_error_password_mismatch'));
-                    setLoading(false);
-                    return;
-                }
-                 userCredential = await createUserWithEmail(email, password);
-            } else {
-                // For phone auth, user is already created, we just need the user object
-                userCredential = { user: auth.currentUser };
+            const userCredential = await createUserWithEmail(email, password);
+            if (userCredential.user) {
+                await userCredential.user.updateProfile({ displayName });
             }
-            
-            const { user } = userCredential;
-            if(user) {
-                const defaultUser = createNewDefaultUser();
-                const newUserProfile: UserProfile = {
-                    ...defaultUser,
-                    uid: user.uid,
-                    email: user.email || '', // Phone users won't have an email
-                    displayName,
-                    isAnonymous: false,
-                    photoURL: `https://api.dicebear.com/8.x/miniavs/svg?seed=${displayName}`,
-                };
-                await createUserProfile(user.uid, newUserProfile);
-                // onAuthStateChanged will handle UI update
-            }
+             // onAuthStateChanged in UserContext will handle profile creation in Firestore
         } catch (err: any) {
             handleAuthError(err);
         } finally {
@@ -208,10 +184,57 @@ const AuthView: React.FC = () => {
         setPasswordConfirm('');
         setDisplayName('');
         setError(null);
-        setSignUpStep(0);
         setOtp('');
         setOtpSent(false);
     }
+
+    const renderEmailForm = () => {
+        if (isLogin) {
+            return (
+                <form onSubmit={handleLoginSubmit} className="space-y-6">
+                    <input id="email" name="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={t('auth_email_placeholder')} className="mt-1 block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)]"/>
+                    <PasswordInput id="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={t('auth_password_placeholder')} show={showPassword} onToggle={() => setShowPassword(s => !s)} autoComplete="current-password" />
+                    <Button type="submit" disabled={loading} className="w-full flex justify-center">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : t('auth_signin_button')}</Button>
+                </form>
+            );
+        }
+        return (
+            <form onSubmit={handleSignUpSubmit} className="space-y-4">
+                <input id="email-signup" name="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={t('auth_email_placeholder')} className="mt-1 block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)]"/>
+                <input id="displayName-signup" name="displayName" type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder={t('auth_displayname_placeholder')} className="mt-1 block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)]"/>
+                <PasswordInput id="password-signup" value={password} onChange={e => setPassword(e.target.value)} placeholder={t('auth_password_placeholder')} show={showPassword} onToggle={() => setShowPassword(s => !s)} autoComplete="new-password" />
+                <PasswordInput id="password-confirm" value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} placeholder={t('auth_password_confirm_placeholder')} show={showConfirmPassword} onToggle={() => setShowConfirmPassword(s => !s)} autoComplete="new-password" />
+                <Button type="submit" disabled={loading || password.length < 4 || password !== passwordConfirm} className="w-full flex justify-center pt-2">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : t('auth_signup_button')}</Button>
+            </form>
+        );
+    };
+    
+    const renderPhoneForm = () => {
+        if (otpSent) {
+            return (
+                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                    <p className="text-sm text-center text-slate-300">Enter the code sent to {selectedCountry.code}{phone}</p>
+                    <input id="otp" type="tel" value={otp} onChange={e => setOtp(e.target.value)} placeholder="6-digit code" maxLength={6} className="block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm text-center tracking-[0.5em]"/>
+                    <Button type="submit" disabled={loading || otp.length < 6} className="w-full flex justify-center">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : isLogin ? "Verify & Sign In" : "Verify Phone"}</Button>
+                </form>
+            );
+        }
+        return (
+            <form onSubmit={handleSendOtp} className="space-y-4">
+                <div className="flex gap-2">
+                    <select
+                        value={selectedCountry.code}
+                        onChange={e => setSelectedCountry(countries.find(c => c.code === e.target.value)!)}
+                        className="block px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    >
+                        {countries.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
+                    </select>
+                    <input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Enter phone number" className="block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"/>
+                </div>
+                <Button type="submit" disabled={loading || phone.length < 9} className="w-full flex justify-center">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : "Send Code"}</Button>
+            </form>
+        );
+    };
 
     return (
         <div className="min-h-screen w-full flex flex-col items-center justify-center bg-transparent p-4">
@@ -225,81 +248,15 @@ const AuthView: React.FC = () => {
 
                 {/* Auth Mode Toggle */}
                 <div className="flex bg-[var(--color-bg-input)] rounded-lg p-1 mb-6">
-                    <button onClick={() => setAuthMode('email')} className={`w-full py-2 px-3 rounded-md text-sm font-semibold flex items-center justify-center gap-2 ${authMode === 'email' ? 'bg-primary-500 text-on-primary shadow-lg' : 'text-[var(--color-text-muted)]'}`}>
+                    <button onClick={() => { setAuthMode('email'); resetFormState(); }} className={`w-full py-2 px-3 rounded-md text-sm font-semibold flex items-center justify-center gap-2 ${authMode === 'email' ? 'bg-primary-500 text-on-primary shadow-lg' : 'text-[var(--color-text-muted)]'}`}>
                         <MailIcon className="w-5 h-5"/> Email
                     </button>
-                     <button onClick={() => setAuthMode('phone')} className={`w-full py-2 px-3 rounded-md text-sm font-semibold flex items-center justify-center gap-2 ${authMode === 'phone' ? 'bg-primary-500 text-on-primary shadow-lg' : 'text-[var(--color-text-muted)]'}`}>
+                     <button onClick={() => { setAuthMode('phone'); resetFormState(); }} className={`w-full py-2 px-3 rounded-md text-sm font-semibold flex items-center justify-center gap-2 ${authMode === 'phone' ? 'bg-primary-500 text-on-primary shadow-lg' : 'text-[var(--color-text-muted)]'}`}>
                        <PhoneIcon className="w-5 h-5"/> Phone
                     </button>
                 </div>
                 
-                {authMode === 'email' && (isLogin ? (
-                    <form onSubmit={handleLoginSubmit} className="space-y-6">
-                         <input id="email" name="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={t('auth_email_placeholder')} className="mt-1 block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)]"/>
-                         <PasswordInput id="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={t('auth_password_placeholder')} show={showPassword} onToggle={() => setShowPassword(s => !s)} autoComplete="current-password" />
-                         <Button type="submit" disabled={loading} className="w-full flex justify-center">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : t('auth_signin_button')}</Button>
-                    </form>
-                ) : ( // Email Sign up
-                    <form onSubmit={handleSignUpSubmit} className="space-y-4">
-                        <input id="email-signup" name="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={t('auth_email_placeholder')} className="mt-1 block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)]"/>
-                        <input id="displayName-signup" name="displayName" type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder={t('auth_displayname_placeholder')} className="mt-1 block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)]"/>
-                        <PasswordInput id="password-signup" value={password} onChange={e => setPassword(e.target.value)} placeholder={t('auth_password_placeholder')} show={showPassword} onToggle={() => setShowPassword(s => !s)} autoComplete="new-password" />
-                        <PasswordInput id="password-confirm" value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} placeholder={t('auth_password_confirm_placeholder')} show={showConfirmPassword} onToggle={() => setShowConfirmPassword(s => !s)} autoComplete="new-password" />
-                        <Button type="submit" disabled={loading || password.length < 4 || password !== passwordConfirm} className="w-full flex justify-center pt-2">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : t('auth_signup_button')}</Button>
-                    </form>
-                ))}
-                
-                 {authMode === 'phone' && (isLogin ? ( // Phone Login
-                    otpSent ? (
-                        <form onSubmit={handleVerifyOtp} className="space-y-4">
-                            <input id="otp" type="tel" value={otp} onChange={e => setOtp(e.target.value)} placeholder="6-digit code" maxLength={6} className="block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm text-center tracking-[0.5em]"/>
-                            <Button type="submit" disabled={loading || otp.length < 6} className="w-full flex justify-center">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : "Verify & Sign In"}</Button>
-                        </form>
-                    ) : (
-                        <form onSubmit={handleSendOtp} className="space-y-4">
-                            <div className="flex gap-2">
-                                <select
-                                    value={selectedCountry.code}
-                                    onChange={e => setSelectedCountry(countries.find(c => c.code === e.target.value)!)}
-                                    className="block px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                                >
-                                    {countries.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
-                                </select>
-                                <input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="612 345 678" className="block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"/>
-                            </div>
-                            <Button type="submit" disabled={loading || phone.length < 9} className="w-full flex justify-center">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : "Send Code"}</Button>
-                        </form>
-                    )
-                ) : ( // Phone Sign up
-                    signUpStep === 0 ? (
-                        otpSent ? (
-                             <form onSubmit={handleVerifyOtp} className="space-y-4">
-                                <p className="text-sm text-center text-slate-300">Enter the code sent to {selectedCountry.code}{phone}</p>
-                                <input id="otp-signup" type="tel" value={otp} onChange={e => setOtp(e.target.value)} placeholder="6-digit code" maxLength={6} className="block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm text-center tracking-[0.5em]"/>
-                                <Button type="submit" disabled={loading || otp.length < 6} className="w-full flex justify-center">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : "Verify Code"}</Button>
-                            </form>
-                        ) : (
-                             <form onSubmit={handleSendOtp} className="space-y-4">
-                                 <div className="flex gap-2">
-                                    <select
-                                        value={selectedCountry.code}
-                                        onChange={e => setSelectedCountry(countries.find(c => c.code === e.target.value)!)}
-                                        className="block px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                                    >
-                                        {countries.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
-                                    </select>
-                                    <input id="phone-signup" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Enter phone number" className="block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"/>
-                                </div>
-                                <Button type="submit" disabled={loading || phone.length < 9} className="w-full flex justify-center">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : "Send Verification Code"}</Button>
-                            </form>
-                        )
-                    ) : ( // After phone verification, get display name
-                         <form onSubmit={handleSignUpSubmit} className="space-y-4">
-                            <input id="displayName-phone" name="displayName" type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder={t('auth_displayname_placeholder')} className="mt-1 block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)]"/>
-                            <Button type="submit" disabled={loading || displayName.length < 3} className="w-full flex justify-center pt-2">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : "Complete Sign Up"}</Button>
-                         </form>
-                    )
-                ))}
+                {authMode === 'email' ? renderEmailForm() : renderPhoneForm()}
                 
                 {error && <p className="text-sm text-center text-red-400 p-2 bg-red-900/30 rounded-md mt-4">{error}</p>}
 
@@ -311,7 +268,7 @@ const AuthView: React.FC = () => {
                      <div className="mt-4 space-y-3">
                         <Button onClick={handleGoogleSignIn} disabled={loading} className="w-full flex justify-center items-center gap-3 auth-google-btn">
                             <GoogleIcon className="w-5 h-5" />
-                            <span className="font-semibold">{t('auth_google_signin')}</span>
+                            <span className="font-semibold">{t(isLogin ? 'auth_google_signin' : 'auth_google_signup')}</span>
                         </Button>
                     </div>
                 </div>
