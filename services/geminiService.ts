@@ -1,7 +1,3 @@
-// filepath: src/lib/ai.ts
-// Minimal, drop-in replacement for your module. Focus: robust API key resolution on Vercel.
-// Why these changes: unify env var names (GOOGLE_API_KEY/GEMINI_API_KEY/API_KEY), avoid silent client leaks, clearer errors.
-
 import { GoogleGenAI, Type, Chat, Content } from "@google/genai";
 import {
   Quiz,
@@ -20,67 +16,25 @@ import {
 } from "../types.ts";
 import { QUIZ_LENGTH } from "../constants.ts";
 
-// --- AI Initialization with Diagnostics ---
+// --- AI Initialization ---
 export let aiInitializationError: string | null = null;
 let ai: GoogleGenAI | null = null;
-const AI_DISABLED_ERROR =
-  "AI services are disabled because an API key is not available.";
+const AI_DISABLED_ERROR = "AI services are disabled due to an initialization error.";
 
-/**
- * Server-only key resolution. On the client, we deliberately avoid reading secrets unless an explicit public key is provided.
- * Priorities follow Google docs: GOOGLE_API_KEY or GEMINI_API_KEY; AI Studio samples often use API_KEY.
- */
-function resolveApiKey(): string | undefined {
-  const isServer = typeof window === "undefined";
-
-  if (isServer) {
-    return (
-      process.env.GOOGLE_API_KEY ||
-      process.env.GEMINI_API_KEY ||
-      process.env.API_KEY ||
-      undefined
-    );
-  }
-
-  // Client (not recommended for secrets). Only allow *explicitly public* keys.
-  // Vite
+try {
+  // As per guidelines, the API key is expected to be in the execution environment.
   // @ts-ignore
-  const vitePublic =
-    // @ts-ignore
-    (typeof import !== "undefined" && typeof import.meta !== "undefined" &&
-      (import.meta.env?.VITE_GOOGLE_API_KEY ||
-        import.meta.env?.VITE_GEMINI_API_KEY ||
-        import.meta.env?.VITE_API_KEY)) || undefined;
-
-  // Next.js
-  const nextPublic =
-    (typeof process !== "undefined" &&
-      (process.env?.NEXT_PUBLIC_GOOGLE_API_KEY ||
-        process.env?.NEXT_PUBLIC_GEMINI_API_KEY ||
-        process.env?.NEXT_PUBLIC_API_KEY)) ||
-    undefined;
-
-  return vitePublic || nextPublic;
-}
-
-function initAI(): void {
-  if (ai) return;
-  try {
-    const apiKey = resolveApiKey();
-    if (!apiKey) throw new Error("No API key found in this runtime.");
-    ai = new GoogleGenAI({ apiKey });
-    // eslint-disable-next-line no-console
-    console.log("Gemini AI Initialized Successfully.");
-  } catch (e: any) {
-    ai = null;
-    aiInitializationError =
-      "Gemini AI initialization failed: no usable API key found. Provide GOOGLE_API_KEY or GEMINI_API_KEY on the server (recommended). If you *must* run in the browser, use NEXT_PUBLIC_GOOGLE_API_KEY / VITE_GOOGLE_API_KEY (not recommended).";
-    // eslint-disable-next-line no-console
-    console.error("AI Initialization Failed:", e?.message || e);
+  if (!process.env.API_KEY) {
+    throw new Error("API_KEY environment variable not set.");
   }
+  // @ts-ignore
+  ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+} catch (e: any) {
+  aiInitializationError = `Gemini AI initialization failed: ${e.message}.`;
+  console.error("AI Initialization Failed:", aiInitializationError);
+  ai = null;
 }
 
-initAI();
 
 const quizOptionSchema = {
   type: Type.OBJECT,
@@ -207,7 +161,7 @@ async function handleApiCall(
   }
 
   try {
-    const response = await (ai as GoogleGenAI).models.generateContent({
+    const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: config,
@@ -358,7 +312,7 @@ Here are the mistakes:
 ${formattedMistakes}`;
 
   try {
-    const response = await (ai as GoogleGenAI).models.generateContent({
+    const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
@@ -401,7 +355,7 @@ export async function getMistakeExplanation(
     Please provide a concise, friendly explanation (1-2 sentences) about why their answer was incorrect. Focus on the specific error they made. For example, if it was a grammar mistake, explain the grammar rule they missed. If it was a vocabulary mistake, clarify the meaning of the word they used versus the correct one.`;
 
   try {
-    const response = await (ai as GoogleGenAI).models.generateContent({
+    const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
     });
@@ -518,7 +472,7 @@ export function createChatSession(personality: string, history?: Content[]): Cha
 - Keep your Darija responses relatively short and easy for a beginner to understand. Ask questions to keep the conversation going.
 - Your first message should introduce yourself and ask how the user is doing.`;
 
-  const chat = (ai as GoogleGenAI).chats.create({
+  const chat = ai.chats.create({
     model: "gemini-2.5-flash",
     history: history,
     config: {
@@ -543,7 +497,7 @@ export async function getTopicExplanation(
 For example, for Grammar level 4, you could explain possessive pronouns. For Common Phrases level 10, you could explain different ways to say thank you. For Numbers level 1, explain how gender affects numbers 1 and 2. Keep it short, simple, and directly useful for the quiz.`;
 
   try {
-    const response = await (ai as GoogleGenAI).models.generateContent({
+    const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
@@ -710,8 +664,8 @@ export async function getTopicImage(topic: LearningTopic): Promise<string> {
   }
 
   try {
-    const response = await (ai as GoogleGenAI).models.generateImages({
-      model: "imagen-3.0-generate-002",
+    const response = await ai.models.generateImages({
+      model: "imagen-4.0-generate-001",
       prompt: prompt,
       config: {
         numberOfImages: 1,
