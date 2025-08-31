@@ -74,7 +74,7 @@ const DuelSetupView: React.FC<DuelSetupViewProps> = ({ onNavigate }) => {
                     ) : (
                          <div className="text-center text-slate-400 p-4 bg-slate-800/50 rounded-lg">
                             <p>You need to add friends to challenge them!</p>
-                            <Button onClick={() => onNavigate({ name: 'friends'})} size="sm" className="mt-3">Add Friends</Button>
+                            <Button onClick={() => onNavigate({ name: 'friends'})} size="sm" variant="outline" className="mt-3">Add Friends</Button>
                         </div>
                     )}
                 </Card>

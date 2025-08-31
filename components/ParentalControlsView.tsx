@@ -5,13 +5,13 @@ import Card from './common/Card.tsx';
 import Button from './common/Button.tsx';
 import { ShieldCheckIcon, SpinnerIcon, CheckCircleIcon, TrophyIcon } from './icons/index.ts';
 import { UserProfile } from '../types.ts';
-import HeaderStats from './home/HeaderStats.tsx'; // Re-using for consistency
 
 // Mock function to simulate fetching child data
 const getChildData = async (uid: string): Promise<Partial<UserProfile> | null> => {
     // In a real app, this would be a backend call. Here we mock it.
     await new Promise(res => setTimeout(res, 500));
-    if (uid.includes('child')) {
+    // This now succeeds for a specific, testable code
+    if (uid === 'CHILD123') {
          return {
             uid: 'mock_child_1',
             displayName: 'Jamal Jr.',
@@ -110,7 +110,7 @@ const ChildDashboard: React.FC<{ childData: Partial<UserProfile> }> = ({ childDa
 }
 
 const ParentalControlsView: React.FC = () => {
-    const { user } = useContext(UserContext);
+    const { user, addInfoToast } = useContext(UserContext);
     const { t } = useTranslations();
     const [isLoading, setIsLoading] = useState(false);
     const [linkCode, setLinkCode] = useState('');
@@ -132,13 +132,14 @@ const ParentalControlsView: React.FC = () => {
         setIsLoading(false);
     }
     
-    // In a real app, you might fetch child data when the component loads
-    // if `user.childAccountIds` is not empty.
-    // useEffect(() => {
-    //     if (user.childAccountIds.length > 0) {
-    //         // fetch and set child data
-    //     }
-    // }, [user.childAccountIds]);
+    const handleCopyCode = () => {
+        const code = user.uid.slice(-6).toUpperCase();
+        navigator.clipboard.writeText(code).then(() => {
+            addInfoToast({type: 'success', message: 'Code copied to clipboard!'});
+        }).catch(err => {
+             addInfoToast({type: 'error', message: 'Failed to copy code.'});
+        });
+    }
     
     if(childData) {
         return <ChildDashboard childData={childData} />;
@@ -162,7 +163,7 @@ const ParentalControlsView: React.FC = () => {
                             type="text"
                             value={linkCode}
                             onChange={e => setLinkCode(e.target.value.toUpperCase())}
-                            placeholder="ABC-123"
+                            placeholder="Enter Code (e.g. CHILD123)"
                             maxLength={10}
                             className="w-full p-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white tracking-widest text-center font-mono focus:ring-2 focus:ring-primary-400"
                         />
@@ -182,6 +183,7 @@ const ParentalControlsView: React.FC = () => {
                             {user.uid.slice(-6).toUpperCase()}
                         </p>
                      </div>
+                     <Button onClick={handleCopyCode} variant="outline" size="sm" className="w-full mt-3">Copy Code</Button>
                 </Card>
             </div>
         </div>

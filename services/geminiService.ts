@@ -22,14 +22,13 @@ let ai: GoogleGenAI | null = null;
 const AI_DISABLED_ERROR = "AI services are disabled due to an initialization error.";
 
 try {
-  // As per guidelines, the API key is expected to be in the execution environment.
-  // FIX: Switched from Vite-specific import.meta.env to standard process.env.API_KEY as per guidelines.
-  if (!process.env.API_KEY) {
-    // FIX: Updated error message to reflect the correct environment variable.
+  // FIX: Switched from import.meta.env to process.env.API_KEY to align with coding guidelines and fix TypeScript error.
+  // The API key is assumed to be pre-configured and accessible in the execution context.
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
     throw new Error("API_KEY environment variable not set.");
   }
-  // FIX: Switched from Vite-specific import.meta.env to standard process.env.API_KEY as per guidelines.
-  ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  ai = new GoogleGenAI({ apiKey: apiKey });
 } catch (e: any) {
   aiInitializationError = `Gemini AI initialization failed: ${e.message}.`;
   console.error("AI Initialization Failed:", aiInitializationError);
@@ -292,6 +291,10 @@ export async function generateQuiz(
 
 export async function analyzeMistakes(mistakes: Mistake[]): Promise<string> {
   if (!ai) throw new Error(AI_DISABLED_ERROR);
+
+  if (mistakes.length === 0) {
+    return "You haven't made any unique mistakes yet. Keep up the great work!";
+  }
 
   const formattedMistakes = mistakes
     .map((m) => {
@@ -625,7 +628,7 @@ export async function getPhonemeExample(
   phoneme: string
 ): Promise<{ latin: string; arabic: string; definition: string }> {
   if (!ai) throw new Error(AI_DISABLED_ERROR);
-  const prompt = `Provide one common, simple Moroccan Darija word that contains the sound represented by the letter '${phoneme}'. For example, for 'ح', you could provide 'b7al'. For 'ق', you could provide 'qahwa'. Also provide a simple English definition for the word.`;
+  const prompt = `Provide one common, simple Moroccan Darija word that contains the sound represented by the letter '${phoneme}'. Also provide a simple English definition for the word. IMPORTANT: Give me a different word than you might have given before for this same phoneme. Introduce variety. Avoid extremely common words like 'qahwa' for 'ق' or 'b7al' for 'ح' if possible.`;
   return handleApiCall(prompt, phonemeExampleSchema);
 }
 

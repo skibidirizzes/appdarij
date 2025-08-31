@@ -17,7 +17,7 @@ const NavItem: React.FC<{
 }> = ({ icon: Icon, label, isActive, onClick }) => (
     <button
         onClick={onClick}
-        className={`flex flex-col items-center justify-center flex-1 min-w-[72px] pt-2 pb-1 transition-colors duration-200 ${
+        className={`flex flex-col items-center justify-center flex-shrink-0 min-w-[72px] pt-2 pb-1 transition-colors duration-200 ${
             isActive ? 'text-primary-400' : 'text-slate-400 hover:text-white'
         }`}
         aria-label={label}
