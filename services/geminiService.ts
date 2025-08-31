@@ -23,12 +23,13 @@ const AI_DISABLED_ERROR = "AI services are disabled due to an initialization err
 
 try {
   // As per guidelines, the API key is expected to be in the execution environment.
+  // For Vercel/Vite, it must be prefixed with VITE_ to be exposed to the browser.
   // @ts-ignore
-  if (!process.env.GOOGLE_API_KEY) {
-    throw new Error("GOOGLE_API_KEY environment variable not set.");
+  if (!process.env.VITE_GOOGLE_API_KEY) {
+    throw new Error("VITE_GOOGLE_API_KEY environment variable not set.");
   }
   // @ts-ignore
-  ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
+  ai = new GoogleGenAI({ apiKey: process.env.VITE_GOOGLE_API_KEY });
 } catch (e: any) {
   aiInitializationError = `Gemini AI initialization failed: ${e.message}.`;
   console.error("AI Initialization Failed:", aiInitializationError);
