@@ -3,12 +3,13 @@ import firebase from 'firebase/compat/app';
 import { UserProfile, UserSettings, LearningTopic, AchievementID, Achievement, UpdateUserPayload, UserContextType, QuizQuestion, UserAnswer, Mistake, OfflineQuizResult, WordHistoryEntry, InfoToastData, ActivePopup, QuestProgress, Quest, SentenceFormationQuestion, Friend, createNewDefaultUser } from '../types.ts';
 import { LOCAL_STORAGE_KEY, ACHIEVEMENTS, LEARNING_TOPICS, LEVELS, QUIZ_LENGTH, POINTS_PER_CORRECT_ANSWER, WRITING_SIMILARITY_THRESHOLD, XP_PER_DAILY_LOGIN, XP_PER_REVIEW_QUIZ, OFFLINE_QUEUE_KEY, XP_PER_FIRST_CONVO, AVAILABLE_QUESTS, STICKERS } from '../constants.ts';
 import { calculateSimilarity } from '../utils/stringSimilarity.ts';
-import { auth, firestore, requestAndSaveToken, getUserProfile, createUserProfile, updateUserProfile, signOut, getUsersByIds } from '../services/firebaseService.ts';
+import { auth, firestore, requestAndSaveToken, getUserProfile, createUserProfile, updateUserProfile, signOut, getUsersByIds, sendFriendRequest as fbSendFriendRequest, respondToFriendRequest as fbRespondToFriendRequest, removeFriend as fbRemoveFriend } from '../services/firebaseService.ts';
 import { getWeek } from 'date-fns';
 import { triggerConfetti } from '../utils/confetti.ts';
 import { analyzeMistakes } from '../services/geminiService.ts';
 
 
+// FIX: Add missing followUser and unfollowUser to satisfy UserContextType
 export const UserContext = createContext<UserContextType>({
   user: null,
   isLoading: true,
@@ -38,6 +39,8 @@ export const UserContext = createContext<UserContextType>({
   sendFriendRequest: async () => false,
   respondToFriendRequest: async () => false,
   removeFriend: async () => false,
+  followUser: async () => {},
+  unfollowUser: async () => {},
   mistakeAnalysis: null,
 });
 
@@ -85,6 +88,26 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     return () => unsubscribe();
   }, []);
+  
+  // Effect for fetching friend/request profiles
+  useEffect(() => {
+    if (user) {
+        const fetchFriendData = async () => {
+            const { friends: friendUids, friendRequests: requestUids } = user;
+            const friendProfiles = friendUids.length > 0 ? await getUsersByIds(friendUids) : [];
+            const incomingProfiles = requestUids.incoming.length > 0 ? await getUsersByIds(requestUids.incoming) : [];
+            const outgoingProfiles = requestUids.outgoing.length > 0 ? await getUsersByIds(requestUids.outgoing) : [];
+            setFriends(friendProfiles);
+            setIncomingRequests(incomingProfiles);
+            setOutgoingRequests(outgoingProfiles);
+        };
+        fetchFriendData();
+    } else {
+        setFriends([]);
+        setIncomingRequests([]);
+        setOutgoingRequests([]);
+    }
+  }, [user]);
 
   const addInfoToast = useCallback((toast: Omit<InfoToastData, 'id'>) => {
     const newToast = { ...toast, id: Date.now().toString() };
@@ -202,7 +225,85 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const markThemePromptAsSeen = async () => { if(user) await updateUserProfile(user.uid, { hasSeenThemePrompt: true }) };
   const markFriendsPromptAsSeen = async () => { if(user) await updateUserProfile(user.uid, { hasSeenFriendsPrompt: true }) };
   const markNotificationPromptAsSeen = async () => { if(user) await updateUserProfile(user.uid, { hasSeenNotificationPrompt: true }) };
+  
+    const sendFriendRequest = async (toUid: string) => {
+        if (!user) return false;
+        try {
+            await fbSendFriendRequest(user.uid, toUid);
+            // Optimistic update
+            setUser(prev => ({
+                ...prev!,
+                friendRequests: {
+                    ...prev!.friendRequests,
+                    outgoing: [...prev!.friendRequests.outgoing, toUid],
+                },
+            }));
+            addInfoToast({type: 'success', message: 'Friend request sent!'});
+            return true;
+        } catch (e) {
+            console.error(e);
+            addInfoToast({type: 'error', message: 'Failed to send request.'});
+            return false;
+        }
+    };
+    
+    const respondToFriendRequest = async (fromUid: string, accept: boolean) => {
+        if (!user) return false;
+        try {
+            await fbRespondToFriendRequest(user.uid, fromUid, accept);
+            // Optimistic update
+            setUser(prev => {
+                const updatedUser = { ...prev! };
+                updatedUser.friendRequests.incoming = updatedUser.friendRequests.incoming.filter(uid => uid !== fromUid);
+                if (accept) {
+                    updatedUser.friends = [...updatedUser.friends, fromUid];
+                }
+                return updatedUser;
+            });
+            addInfoToast({type: 'success', message: accept ? 'Friend added!' : 'Request declined.'});
+            return true;
+        } catch (e) {
+            console.error(e);
+            addInfoToast({type: 'error', message: 'Failed to respond to request.'});
+            return false;
+        }
+    };
 
+    const removeFriend = async (friendUid: string) => {
+        if (!user) return false;
+        try {
+            await fbRemoveFriend(user.uid, friendUid);
+            setUser(prev => ({
+                ...prev!,
+                friends: prev!.friends.filter(uid => uid !== friendUid),
+            }));
+            addInfoToast({type: 'info', message: 'Friend removed.'});
+            return true;
+        } catch (e) {
+            console.error(e);
+            addInfoToast({type: 'error', message: 'Failed to remove friend.'});
+            return false;
+        }
+    };
+
+    // FIX: Add placeholder implementations for followUser and unfollowUser to satisfy the UserContextType interface.
+    const followUser = async (targetUid: string): Promise<void> => {
+      if (!user) return;
+      console.log(`Following user ${targetUid}`);
+      addInfoToast({ type: 'info', message: `Follow user is not yet implemented.` });
+      // In a real application, you would add logic here to update the user's 'following' list
+      // and the target user's 'followers' list in Firestore.
+    };
+  
+    const unfollowUser = async (targetUid: string): Promise<void> => {
+      if (!user) return;
+      console.log(`Unfollowing user ${targetUid}`);
+      addInfoToast({ type: 'info', message: `Unfollow user is not yet implemented.` });
+      // Similarly, this would contain the logic to reverse the follow action.
+    };
+
+
+  // FIX: Add followUser and unfollowUser to the context value.
   const contextValue = useMemo(() => ({
     user, isLoading, updateUser, submitQuizResults, updateSettings, updateProfileDetails,
     resetAllData, clearProgress, clearMistakes, logout, newlyUnlockedAchievements,
@@ -210,9 +311,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addInfoToast, infoToasts, syncOfflineResults, activePopup, setActivePopup,
     markThemePromptAsSeen, markFriendsPromptAsSeen, markNotificationPromptAsSeen,
     friends, incomingRequests, outgoingRequests,
-    sendFriendRequest: async () => false,
-    respondToFriendRequest: async () => false,
-    removeFriend: async () => false,
+    sendFriendRequest,
+    respondToFriendRequest,
+    removeFriend,
+    followUser,
+    unfollowUser,
     mistakeAnalysis,
   }), [
     user, isLoading, updateUser, submitQuizResults, updateSettings, updateProfileDetails, logout, 

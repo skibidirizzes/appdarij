@@ -54,6 +54,18 @@ const PhonemePracticeView: React.FC = () => {
     const [transcript, setTranscript] = useState('');
     const recognitionRef = useRef<any | null>(null);
     const [speechError, setSpeechError] = useState<string | null>(null);
+    const [micPermission, setMicPermission] = useState('prompt');
+
+    useEffect(() => {
+        if(navigator.permissions) {
+            navigator.permissions.query({ name: 'microphone' as PermissionName }).then(permissionStatus => {
+                setMicPermission(permissionStatus.state);
+                permissionStatus.onchange = () => {
+                    setMicPermission(permissionStatus.state);
+                };
+            });
+        }
+    }, []);
 
     const fetchExample = useCallback(async (phoneme: string) => {
         setIsLoadingExample(true);
@@ -310,6 +322,7 @@ const PhonemePracticeView: React.FC = () => {
                  isLoadingFeedback ? 'Analyzing...' : 
                  (resultState === 'incorrect' ? t('phoneme_practice_try_again_button') : t('phoneme_practice_record_button'))}
             </p>
+            {micPermission === 'prompt' && <p className="text-center text-xs text-slate-400 mt-1">Microphone permission will be requested.</p>}
             {recognitionState === 'denied' && <p className="text-red-400 text-sm text-center mt-2">{t('quiz_speech_denied')}</p>}
             {speechError && (
                 <p className="text-amber-400 p-2 bg-amber-900/30 rounded-md text-sm text-center mt-2">{speechError}</p>

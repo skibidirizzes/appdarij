@@ -397,6 +397,8 @@ export interface UserContextType {
   sendFriendRequest: (toUid: string) => Promise<boolean>;
   respondToFriendRequest: (fromUid: string, accept: boolean) => Promise<boolean>;
   removeFriend: (friendUid: string) => Promise<boolean>;
+  followUser: (targetUid: string) => Promise<void>;
+  unfollowUser: (targetUid: string) => Promise<void>;
   mistakeAnalysis: string | null;
 }
 

@@ -109,7 +109,7 @@ const FriendsView: React.FC<FriendsViewProps> = ({ onNavigate }) => {
     
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
-        if(!searchQuery.trim()) return;
+        if(!searchQuery.trim() || !user) return;
         setIsSearching(true);
         const uidsToExclude = [user.uid, ...user.friends, ...user.friendRequests.incoming, ...user.friendRequests.outgoing];
         const results = await searchUsers(searchQuery, uidsToExclude);
@@ -132,8 +132,8 @@ const FriendsView: React.FC<FriendsViewProps> = ({ onNavigate }) => {
                         {friends.map(friend => (
                             <FriendCard key={friend.uid} friend={friend} actions={
                                 <>
-                                    <Button size="sm" className="bg-slate-600 hover:bg-slate-500" onClick={() => alert('Duels coming soon!')}><SwordIcon className="w-4 h-4"/></Button>
-                                    <Button size="sm" className="bg-red-600/80 hover:bg-red-600" onClick={() => removeFriend(friend.uid)}>{t('friends_button_remove')}</Button>
+                                    <Button size="sm" onClick={() => onNavigate({ name: 'duel-setup' })}><SwordIcon className="w-4 h-4"/></Button>
+                                    <Button size="sm" variant="secondary" className="bg-red-900/60 hover:bg-red-800/80 text-red-300" onClick={() => removeFriend(friend.uid)}>{t('friends_button_remove')}</Button>
                                 </>
                             }/>
                         ))}
@@ -155,7 +155,7 @@ const FriendsView: React.FC<FriendsViewProps> = ({ onNavigate }) => {
                                     <FriendCard key={req.uid} friend={req} actions={
                                         <>
                                             <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500" onClick={() => respondToFriendRequest(req.uid, true)}>{t('friends_button_accept')}</Button>
-                                            <Button size="sm" className="bg-slate-600 hover:bg-slate-500" onClick={() => respondToFriendRequest(req.uid, false)}>{t('friends_button_decline')}</Button>
+                                            <Button size="sm" variant="secondary" onClick={() => respondToFriendRequest(req.uid, false)}>{t('friends_button_decline')}</Button>
                                         </>
                                     }/>
                                 ))}

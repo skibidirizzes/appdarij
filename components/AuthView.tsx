@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { UserProfile, createNewDefaultUser } from '../types.ts';
 import Card from './common/Card.tsx';
 import Button from './common/Button.tsx';
+import Modal from './common/Modal.tsx';
 import { SparklesIcon, SpinnerIcon, GoogleIcon, EyeIcon, EyeOffIcon, PhoneIcon, MailIcon } from './icons/index.ts';
 import { useTranslations } from '../hooks/useTranslations.ts';
-import { auth, signInWithGoogle, createUserWithEmail, signInWithEmail, createUserProfile, setupRecaptchaVerifier, signInWithPhoneNumber } from '../services/firebaseService.ts';
+// FIX: import sendPasswordResetEmail
+import { auth, signInWithGoogle, createUserWithEmail, signInWithEmail, createUserProfile, setupRecaptchaVerifier, signInWithPhoneNumber, sendPasswordResetEmail } from '../services/firebaseService.ts';
 
 const PasswordInput: React.FC<{
     id: string;
@@ -41,6 +43,48 @@ const countries = [
   { code: '+1', flag: '🇺🇸', name: 'USA' },
 ];
 
+const ForgotPasswordModal: React.FC<{onClose: () => void}> = ({ onClose }) => {
+    const { t } = useTranslations();
+    const [email, setEmail] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [sent, setSent] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+        try {
+            await sendPasswordResetEmail(email);
+            setSent(true);
+        } catch (err: any) {
+            setError(err.message || 'Failed to send reset email.');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return (
+        <Modal isOpen={true} onClose={onClose} title="Reset Password">
+            <div className="p-6">
+                {sent ? (
+                    <div className="text-center">
+                        <p className="text-slate-200">A password reset link has been sent to <strong>{email}</strong>. Please check your inbox.</p>
+                        <Button onClick={onClose} className="mt-4 w-full">Close</Button>
+                    </div>
+                ) : (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <p className="text-sm text-slate-300">Enter your account's email address and we will send you a link to reset your password.</p>
+                        <input id="reset-email" name="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={t('auth_email_placeholder')} required autoComplete="email" className="mt-1 block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)]"/>
+                        {error && <p className="text-red-400 text-sm">{error}</p>}
+                        <Button type="submit" disabled={loading || !email} className="w-full flex justify-center">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : 'Send Reset Link'}</Button>
+                    </form>
+                )}
+            </div>
+        </Modal>
+    )
+}
+
 const AuthView: React.FC = () => {
     const [isLogin, setIsLogin] = useState(true);
     const [authMode, setAuthMode] = useState<'email' | 'phone'>('email');
@@ -56,6 +100,10 @@ const AuthView: React.FC = () => {
     // Sign up state
     const [displayName, setDisplayName] = useState('');
     const [passwordConfirm, setPasswordConfirm] = useState('');
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+    // Forgot Password Modal
+    const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
     
     // Phone auth state
     const [selectedCountry, setSelectedCountry] = useState(countries[0]);
@@ -163,6 +211,11 @@ const AuthView: React.FC = () => {
             setLoading(false);
             return;
         }
+        if (!agreedToTerms) {
+            setError("You must agree to the terms and services.");
+            setLoading(false);
+            return;
+        }
 
         try {
             const userCredential = await createUserWithEmail(email, password);
@@ -183,6 +236,7 @@ const AuthView: React.FC = () => {
         setPassword('');
         setPasswordConfirm('');
         setDisplayName('');
+        setAgreedToTerms(false);
         setError(null);
         setOtp('');
         setOtpSent(false);
@@ -191,20 +245,37 @@ const AuthView: React.FC = () => {
     const renderEmailForm = () => {
         if (isLogin) {
             return (
-                <form onSubmit={handleLoginSubmit} className="space-y-6">
-                    <input id="email" name="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={t('auth_email_placeholder')} className="mt-1 block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)]"/>
+                <form onSubmit={handleLoginSubmit} className="space-y-4">
+                    <input id="email" name="email" type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} placeholder={t('auth_email_placeholder')} className="mt-1 block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)]"/>
                     <PasswordInput id="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={t('auth_password_placeholder')} show={showPassword} onToggle={() => setShowPassword(s => !s)} autoComplete="current-password" />
+                    <div className="flex items-center justify-end">
+                        <div className="text-sm">
+                            <button type="button" onClick={() => setIsForgotPasswordModalOpen(true)} className="font-medium text-primary-400 hover:text-primary-300">
+                                Forgot password?
+                            </button>
+                        </div>
+                    </div>
                     <Button type="submit" disabled={loading} className="w-full flex justify-center">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : t('auth_signin_button')}</Button>
                 </form>
             );
         }
         return (
             <form onSubmit={handleSignUpSubmit} className="space-y-4">
-                <input id="email-signup" name="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={t('auth_email_placeholder')} className="mt-1 block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)]"/>
-                <input id="displayName-signup" name="displayName" type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder={t('auth_displayname_placeholder')} className="mt-1 block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)]"/>
+                <input id="email-signup" name="email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={t('auth_email_placeholder')} className="mt-1 block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)]"/>
+                <input id="displayName-signup" name="displayName" type="text" autoComplete="name" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder={t('auth_displayname_placeholder')} className="mt-1 block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)]"/>
                 <PasswordInput id="password-signup" value={password} onChange={e => setPassword(e.target.value)} placeholder={t('auth_password_placeholder')} show={showPassword} onToggle={() => setShowPassword(s => !s)} autoComplete="new-password" />
                 <PasswordInput id="password-confirm" value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} placeholder={t('auth_password_confirm_placeholder')} show={showConfirmPassword} onToggle={() => setShowConfirmPassword(s => !s)} autoComplete="new-password" />
-                <Button type="submit" disabled={loading || password.length < 4 || password !== passwordConfirm} className="w-full flex justify-center pt-2">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : t('auth_signup_button')}</Button>
+                <div className="flex items-start">
+                    <div className="flex items-center h-5">
+                        <input id="terms" name="terms" type="checkbox" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} className="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300 rounded" />
+                    </div>
+                    <div className="ml-3 text-sm">
+                        <label htmlFor="terms" className="text-slate-400">
+                            I agree to the <a href="#" className="font-medium text-primary-400 hover:text-primary-300">Terms</a> and <a href="#" className="font-medium text-primary-400 hover:text-primary-300">Privacy Policy</a>.
+                        </label>
+                    </div>
+                </div>
+                <Button type="submit" disabled={loading || password.length < 4 || password !== passwordConfirm || !agreedToTerms} className="w-full flex justify-center pt-2">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : t('auth_signup_button')}</Button>
             </form>
         );
     };
@@ -214,7 +285,7 @@ const AuthView: React.FC = () => {
             return (
                 <form onSubmit={handleVerifyOtp} className="space-y-4">
                     <p className="text-sm text-center text-slate-300">Enter the code sent to {selectedCountry.code}{phone}</p>
-                    <input id="otp" type="tel" value={otp} onChange={e => setOtp(e.target.value)} placeholder="6-digit code" maxLength={6} className="block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm text-center tracking-[0.5em]"/>
+                    <input id="otp" type="tel" autoComplete="one-time-code" value={otp} onChange={e => setOtp(e.target.value)} placeholder="6-digit code" maxLength={6} className="block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm text-center tracking-[0.5em]"/>
                     <Button type="submit" disabled={loading || otp.length < 6} className="w-full flex justify-center">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : isLogin ? "Verify & Sign In" : "Verify Phone"}</Button>
                 </form>
             );
@@ -229,7 +300,7 @@ const AuthView: React.FC = () => {
                     >
                         {countries.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
                     </select>
-                    <input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Enter phone number" className="block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"/>
+                    <input id="phone" type="tel" autoComplete="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Enter phone number" className="block w-full px-3 py-2 bg-[var(--color-bg-input)] border-2 border-[var(--color-border-input)] rounded-lg text-[var(--color-text-base)] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"/>
                 </div>
                 <Button type="submit" disabled={loading || phone.length < 9} className="w-full flex justify-center">{loading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : "Send Code"}</Button>
             </form>
@@ -239,6 +310,8 @@ const AuthView: React.FC = () => {
     return (
         <div className="min-h-screen w-full flex flex-col items-center justify-center bg-transparent p-4">
             <div id="recaptcha-container"></div>
+            {isForgotPasswordModalOpen && <ForgotPasswordModal onClose={() => setIsForgotPasswordModalOpen(false)}/>}
+
             <Card className="w-full max-w-sm p-8 animate-fade-in-up">
                 <div className="text-center mb-6">
                     <img src="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🇲🇦</text></svg>" alt="App Logo" className="h-16 w-16 mx-auto mb-4" />

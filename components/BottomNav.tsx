@@ -40,7 +40,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, onNavigate }) => {
     ] as const)
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 h-16 bg-slate-800/80 backdrop-blur-lg border-t border-slate-700/50 flex z-20 overflow-x-auto">
+        <nav className="fixed bottom-0 left-0 right-0 h-16 bg-slate-800/80 backdrop-blur-lg border-t border-slate-700/50 flex z-20 overflow-x-auto whitespace-nowrap">
             {navItems.map((item) => (
                 <NavItem
                     key={item.view}
