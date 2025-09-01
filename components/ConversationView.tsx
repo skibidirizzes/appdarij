@@ -49,6 +49,7 @@ const ConversationView: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const recognitionRef = useRef<any | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const streamRef = useRef<MediaStream | null>(null);
     const lastPlayedMessageTimestamp = useRef<number | null>(null);
     const [recognitionState, setRecognitionState] = useState<RecognitionState>('idle');
 
@@ -68,12 +69,10 @@ const ConversationView: React.FC = () => {
             const audio = new Audio(url);
             audioRef.current = audio;
             
-            // The play() method returns a Promise which can be used to detect failures.
             const playPromise = audio.play();
             if (playPromise !== undefined) {
                 playPromise.catch(error => {
                     console.error("Audio playback failed:", error);
-                    // Autoplay was prevented.
                     setCurrentlyPlayingTimestamp(null);
                 });
             }
@@ -140,25 +139,42 @@ const ConversationView: React.FC = () => {
         }
         
         return () => {
-            if (recognitionRef.current) recognitionRef.current.stop();
+            if (recognitionRef.current) {
+                recognitionRef.current.stop();
+            }
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+            }
             stopCurrentAudio();
         }
     }, [recognitionState, mode]);
 
-    const startRecognition = () => {
+    const startRecognition = async () => {
         stopCurrentAudio();
-        if (recognitionRef.current && ['idle', 'recognized'].includes(recognitionState)) {
-            setUserInput('');
-            setRecognitionState('recognizing');
-            recognitionRef.current.start();
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            streamRef.current = stream; // Keep track of the stream
+
+            if (recognitionRef.current && ['idle', 'recognized'].includes(recognitionState)) {
+                setUserInput('');
+                setRecognitionState('recognizing');
+                recognitionRef.current.start();
+            }
+        } catch (err) {
+            console.error("Mic permission error", err);
+            setRecognitionState('denied');
         }
     };
 
     const stopRecognition = () => {
         if (recognitionRef.current && recognitionState === 'recognizing') {
             recognitionRef.current.stop();
-            setRecognitionState('idle');
         }
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+        setRecognitionState('idle');
     };
 
     const initChat = useCallback(async () => {

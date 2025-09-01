@@ -1,4 +1,5 @@
 import React, { useState, useContext, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UserContext } from '../context/UserContext.tsx';
 import { useTranslations } from '../hooks/useTranslations.ts';
 import { searchUsers } from '../services/firebaseService.ts';
@@ -93,12 +94,9 @@ const FriendLeaderboard: React.FC = () => {
     );
 }
 
-interface FriendsViewProps {
-    onNavigate: (view: { name: View; params?: any }) => void;
-}
-
-const FriendsView: React.FC<FriendsViewProps> = ({ onNavigate }) => {
+const FriendsView: React.FC = () => {
     const { t } = useTranslations();
+    const navigate = useNavigate();
     const { user, friends, incomingRequests, outgoingRequests, sendFriendRequest, respondToFriendRequest, removeFriend } = useContext(UserContext);
     const [mode, setMode] = useState<ViewMode>('my_friends');
     
@@ -132,7 +130,7 @@ const FriendsView: React.FC<FriendsViewProps> = ({ onNavigate }) => {
                         {friends.map(friend => (
                             <FriendCard key={friend.uid} friend={friend} actions={
                                 <>
-                                    <Button size="sm" onClick={() => onNavigate({ name: 'duel-setup' })}><SwordIcon className="w-4 h-4"/></Button>
+                                    <Button size="sm" onClick={() => navigate('/duel-setup')}><SwordIcon className="w-4 h-4"/></Button>
                                     <Button size="sm" variant="secondary" className="bg-red-900/60 hover:bg-red-800/80 text-red-300" onClick={() => removeFriend(friend.uid)}>{t('friends_button_remove')}</Button>
                                 </>
                             }/>

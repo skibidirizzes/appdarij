@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useParams } from 'react-router-dom';
 import { UserProfile, CommunityPost, View, Sticker } from '../types.ts';
 import { UserContext } from '../context/UserContext.tsx';
-import { getPublicUserProfiles, getCommunityPostsByUser } from '../services/firebaseService.ts';
+import { getUserProfile, getCommunityPostsByUser } from '../services/firebaseService.ts';
 import Card from './common/Card.tsx';
 import Button from './common/Button.tsx';
 import { SpinnerIcon, TrophyIcon, UserIcon, ClockIcon } from './icons/index.ts';
@@ -10,11 +11,6 @@ import { formatDistanceToNow } from 'date-fns';
 import RecentActivity from './home/RecentActivity.tsx'; // Reusing this component
 import { CommunityIcon, MessageSquareIcon, ArrowUpIcon } from './icons/index.ts';
 import Tooltip from './common/Tooltip.tsx';
-
-interface ProfileViewProps {
-    userId: string;
-    onNavigate: (view: { name: View; params?: any }) => void;
-}
 
 const PostCard: React.FC<{ post: CommunityPost }> = ({ post }) => {
     const { t } = useTranslations();
@@ -52,8 +48,8 @@ const StickerDisplay: React.FC<{ sticker: Sticker }> = ({ sticker }) => {
     )
 }
 
-
-const ProfileView: React.FC<ProfileViewProps> = ({ userId, onNavigate }) => {
+const ProfileView: React.FC = () => {
+    const { userId } = useParams<{ userId: string }>();
     const { user: currentUser } = useContext(UserContext);
     const { t } = useTranslations();
     const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -72,13 +68,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, onNavigate }) => {
             setIsLoading(true);
             setError(null);
             try {
-                const [profileResults, postData] = await Promise.all([
-                    getPublicUserProfiles([userId]),
+                const [profileData, postData] = await Promise.all([
+                    getUserProfile(userId),
                     getCommunityPostsByUser(userId)
                 ]);
                 
-                const profileData = profileResults[0];
-
                 if (!profileData) {
                     throw new Error("Could not find user profile.");
                 }

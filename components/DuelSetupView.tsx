@@ -1,27 +1,24 @@
 import React, { useState, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UserContext } from '../context/UserContext.tsx';
 import { useTranslations } from '../hooks/useTranslations.ts';
-import { View, Friend, LearningTopic } from '../types.ts';
+import { Friend, LearningTopic } from '../types.ts';
 import { LEARNING_TOPICS } from '../constants.ts';
 import Card from './common/Card.tsx';
 import Button from './common/Button.tsx';
-import { SwordIcon, UserGroupIcon } from './icons/index.ts';
+import { SwordIcon } from './icons/index.ts';
 
-interface DuelSetupViewProps {
-    onNavigate: (view: { name: View; params?: any }) => void;
-}
-
-const DuelSetupView: React.FC<DuelSetupViewProps> = ({ onNavigate }) => {
+const DuelSetupView: React.FC = () => {
     const { t } = useTranslations();
     const { user, friends } = useContext(UserContext);
+    const navigate = useNavigate();
     const [selectedTopic, setSelectedTopic] = useState<LearningTopic | null>(null);
     const [selectedOpponent, setSelectedOpponent] = useState<Friend | null>(null);
 
     const handleStartDuel = () => {
         if (selectedTopic && selectedOpponent) {
-            onNavigate({
-                name: 'duel-quiz',
-                params: {
+            navigate('/duel-quiz', {
+                state: {
                     topic: selectedTopic,
                     opponent: selectedOpponent,
                 },
@@ -74,7 +71,7 @@ const DuelSetupView: React.FC<DuelSetupViewProps> = ({ onNavigate }) => {
                     ) : (
                          <div className="text-center text-slate-400 p-4 bg-slate-800/50 rounded-lg">
                             <p>You need to add friends to challenge them!</p>
-                            <Button onClick={() => onNavigate({ name: 'friends'})} size="sm" variant="outline" className="mt-3">Add Friends</Button>
+                            <Button onClick={() => navigate('/friends')} size="sm" variant="outline" className="mt-3">Add Friends</Button>
                         </div>
                     )}
                 </Card>

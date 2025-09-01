@@ -1,17 +1,18 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UserContext } from '../context/UserContext.tsx';
-import { THEME_COLORS, ThemeColorName, UserSettings, ScriptMode, View, ThemeMode } from '../types.ts';
+import { THEME_COLORS, ThemeColorName, UserSettings, ScriptMode, ThemeMode } from '../types.ts';
 import Button from './common/Button.tsx';
 import Card from './common/Card.tsx';
 import Modal from './common/Modal.tsx';
 import { useTranslations } from '../hooks/useTranslations.ts';
-import { BellIcon, SunIcon, MoonIcon, ShieldCheckIcon, UserIcon, EyeIcon, EyeOffIcon } from './icons/index.ts';
+import { BellIcon, SunIcon, MoonIcon, ShieldCheckIcon, UserIcon, EyeIcon, EyeOffIcon, PencilIcon } from './icons/index.ts';
 
-interface SettingsViewProps {
-    onNavigate: (view: View | { name: View; params?: any }) => void;
+interface NotificationHelpModalProps {
+    onClose: () => void;
 }
 
-const NotificationHelpModal: React.FC<{onClose: () => void}> = ({ onClose }) => {
+const NotificationHelpModal: React.FC<NotificationHelpModalProps> = ({ onClose }) => {
     const { t } = useTranslations();
     return (
         <Modal isOpen={true} onClose={onClose} title={t('settings_notifications_help_title')}>
@@ -29,7 +30,6 @@ const NotificationHelpModal: React.FC<{onClose: () => void}> = ({ onClose }) => 
     );
 };
 
-// Moved outside the main component to prevent re-definition on each render, fixing the focus loss bug.
 const PasswordInput: React.FC<{
     id: string;
     value: string;
@@ -57,9 +57,9 @@ const PasswordInput: React.FC<{
     </div>
 );
 
-
-const SettingsView: React.FC<SettingsViewProps> = ({ onNavigate }) => {
+const SettingsView: React.FC = () => {
     const { user, updateSettings, logout, enableNotifications, addInfoToast, updateProfileDetails } = useContext(UserContext);
+    const navigate = useNavigate();
     const { settings } = user!;
     const { t } = useTranslations();
     const [permissionStatus, setPermissionStatus] = useState('default');
@@ -68,14 +68,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onNavigate }) => {
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
 
-    // Profile Edit State
     const [displayName, setDisplayName] = useState(user.displayName);
     const [bio, setBio] = useState(user.bio || '');
     const [newPhotoPreview, setNewPhotoPreview] = useState<string | null>(null);
-    const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     
-    // Password Change State
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -102,7 +99,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onNavigate }) => {
     const handleThemeModeChange = (mode: ThemeMode) => { updateSettings({ themeMode: mode }); };
     const handleAccentChange = (color: ThemeColorName) => { updateSettings({ accentColor: color }); };
     const handleScriptChange = (mode: ScriptMode) => { updateSettings({ scriptMode: mode }); };
-    const handleLanguageChange = (lang: UserSettings['language']) => { updateSettings({ language: lang }); };
+    const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      updateSettings({ language: e.target.value as UserSettings['language'] });
+    };
     
     const handleDailyGoalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const goal = parseInt(e.target.value, 10);
@@ -137,20 +136,19 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onNavigate }) => {
                 addInfoToast({ type: 'error', message: "Image is too large. Please choose a file under 2MB."});
                 return;
             }
-            setNewPhotoFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setNewPhotoPreview(reader.result as string);
+                handlePhotoSave(reader.result as string);
             };
             reader.readAsDataURL(file);
         }
     };
     
-    const handlePhotoSave = () => {
-        if (newPhotoPreview) {
-            updateProfileDetails({ photoURL: newPhotoPreview });
+    const handlePhotoSave = (photoUrl: string) => {
+        if (photoUrl) {
+            updateProfileDetails({ photoURL: photoUrl });
             setNewPhotoPreview(null);
-            setNewPhotoFile(null);
             addInfoToast({ type: 'success', message: 'Profile picture updated!'});
             setIsAvatarModalOpen(false);
         }
@@ -158,7 +156,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onNavigate }) => {
     
     const handleChangePassword = (e: React.FormEvent) => {
         e.preventDefault();
-        // Mock implementation
         if (newPassword !== confirmPassword) {
             addInfoToast({ type: 'error', message: "New passwords don't match." });
             return;
@@ -213,7 +210,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onNavigate }) => {
                             {[...Array(10)].map((_, i) => {
                                 const url = `https://api.dicebear.com/8.x/adventurer/svg?seed=${i * Math.random()}`;
                                 return (
-                                <button key={url} onClick={() => setNewPhotoPreview(url)} className={`rounded-full transition-all duration-200 ${newPhotoPreview === url ? 'ring-4 ring-primary-500 scale-110' : 'ring-2 ring-transparent hover:scale-105'}`}>
+                                <button key={url} onClick={() => handlePhotoSave(url)} className={`rounded-full transition-all duration-200 ring-4 ring-transparent hover:scale-105 hover:ring-primary-500`}>
                                     <img src={url} alt="Avatar option" className="rounded-full" />
                                 </button>
                             )})}
@@ -224,16 +221,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onNavigate }) => {
                             </Button>
                             <input type="file" accept="image/*" ref={fileInputRef} onChange={handlePhotoSelect} className="hidden" />
                         </div>
-                        {newPhotoPreview && (
-                            <div className="flex flex-col sm:flex-row gap-4">
-                                <Button onClick={() => setIsAvatarModalOpen(false)} size="lg" className="w-full bg-slate-600 hover:bg-slate-500">
-                                Cancel
-                                </Button>
-                                <Button onClick={handlePhotoSave} size="lg" className="w-full">
-                                Save & Continue
-                                </Button>
-                            </div>
-                        )}
                     </div>
                  </Modal>
             )}
@@ -247,30 +234,22 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onNavigate }) => {
 
                         {/* Profile Picture */}
                         <div className="flex items-center gap-4">
-                            <img src={newPhotoPreview || user.photoURL} alt="Profile" className="w-16 h-16 rounded-full"/>
-                            <div className="flex-1">
-                                {newPhotoPreview ? (
-                                    <div className="flex gap-2">
-                                        <Button onClick={handlePhotoSave} size="sm">Save</Button>
-                                        <Button onClick={() => { setNewPhotoPreview(null); setNewPhotoFile(null); }} size="sm" className="bg-slate-600 hover:bg-slate-500">Cancel</Button>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col sm:flex-row gap-2">
-                                        <Button onClick={() => fileInputRef.current?.click()} size="sm" className="w-full justify-center">Upload New</Button>
-                                        <Button onClick={() => setIsAvatarModalOpen(true)} size="sm" className="w-full justify-center bg-slate-600 hover:bg-slate-500">Choose from Library</Button>
-                                    </div>
-                                )}
-                                <input type="file" accept="image/*" ref={fileInputRef} onChange={handlePhotoSelect} className="hidden" />
-                            </div>
-                        </div>
+                            <button onClick={() => setIsAvatarModalOpen(true)} className="relative group flex-shrink-0">
+                                <img src={user.photoURL} alt="Profile" className="w-20 h-20 rounded-full"/>
+                                <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                    <PencilIcon className="w-8 h-8 text-white"/>
+                                </div>
+                            </button>
+                             <input type="file" accept="image/*" ref={fileInputRef} onChange={handlePhotoSelect} className="hidden" />
 
-                        {/* Display Name */}
-                        <div>
-                             <label className="block text-sm font-medium text-slate-300 mb-1">Display Name</label>
-                             <div className="flex gap-2">
-                                <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} className="w-full p-2 bg-slate-700 border-2 border-slate-600 rounded-lg text-white" />
-                                <Button onClick={handleDisplayNameSave} disabled={displayName === user.displayName || displayName.trim().length < 3}>Save</Button>
-                             </div>
+                            {/* Display Name */}
+                            <div className="flex-grow">
+                                <label className="block text-sm font-medium text-slate-300 mb-1">Display Name</label>
+                                <div className="flex gap-2">
+                                    <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} className="w-full p-2 bg-slate-700 border-2 border-slate-600 rounded-lg text-white" />
+                                    <Button onClick={handleDisplayNameSave} disabled={displayName === user.displayName || displayName.trim().length < 3}>Save</Button>
+                                </div>
+                            </div>
                         </div>
                         
                         {/* Bio */}
@@ -342,22 +321,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onNavigate }) => {
                         <div>
                             <h3 className="text-lg font-semibold text-[var(--color-text-base)]">{t('settings_language_title')}</h3>
                              <p className="text-[var(--color-text-muted)] text-sm mb-3">{t('settings_language_description')}</p>
-                            <div className="flex gap-2">
-                            <Button
-                                    onClick={() => handleLanguageChange('en')}
-                                    className={settings.language === 'en' ? '' : 'bg-slate-600 hover:bg-slate-500'}
-                                    aria-pressed={settings.language === 'en'}
+                            <select 
+                                value={settings.language} 
+                                onChange={handleLanguageChange}
+                                className="w-full p-2.5 bg-slate-700 border-2 border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-primary-400"
                             >
-                                    English
-                            </Button>
-                                <Button
-                                    onClick={() => handleLanguageChange('nl')}
-                                    className={settings.language === 'nl' ? '' : 'bg-slate-600 hover:bg-slate-500'}
-                                    aria-pressed={settings.language === 'nl'}
-                            >
-                                    Nederlands
-                            </Button>
-                            </div>
+                                <option value="en">English</option>
+                                <option value="nl">Nederlands</option>
+                            </select>
                         </div>
 
                         {/* Daily Goal Setting */}
@@ -402,14 +373,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onNavigate }) => {
                     </div>
                 </Card>
                 
-                <Card className="card-lift-hover">
+                 <Card className="card-lift-hover">
                     <div className="p-6 space-y-4">
                         <h3 className="text-lg font-semibold text-[var(--color-text-base)] flex items-center gap-2">
                            <ShieldCheckIcon className="w-5 h-5" />
                            {t('nav_parental_controls')}
                         </h3>
                         <p className="text-[var(--color-text-muted)] text-sm">{t('parental_controls_settings_description')}</p>
-                        <Button onClick={() => onNavigate('parental-controls')} className="w-full justify-center">
+                        <Button onClick={() => navigate('/parental-controls')} className="w-full justify-center">
                             {t('parental_controls_settings_button')}
                         </Button>
                     </div>

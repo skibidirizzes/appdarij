@@ -1,19 +1,20 @@
 import React, { useState, useEffect, useContext, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getLeaderboard } from '../services/firebaseService.ts';
-import { LeaderboardEntry, View } from '../types.ts';
+import { LeaderboardEntry } from '../types.ts';
 import { UserContext } from '../context/UserContext.tsx';
 import Card from './common/Card.tsx';
-import { SpinnerIcon, TrophyIcon, LeaderboardIcon, UserIcon } from './icons/index.ts';
+import { SpinnerIcon, TrophyIcon, LeaderboardIcon } from './icons/index.ts';
 import { useTranslations } from '../hooks/useTranslations.ts';
 import Skeleton from './common/Skeleton.tsx';
 
 interface LeaderboardViewProps {
     showTitle?: boolean;
-    onNavigate: (view: { name: View; params?: any }) => void;
 }
 
-const LeaderboardView: React.FC<LeaderboardViewProps> = ({ showTitle = true, onNavigate }) => {
+const LeaderboardView: React.FC<LeaderboardViewProps> = ({ showTitle = true }) => {
     const { user } = useContext(UserContext);
+    const navigate = useNavigate();
     const { t } = useTranslations();
     const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -114,7 +115,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ showTitle = true, onN
                                 return (
                                     <button
                                         key={entry.uid}
-                                        onClick={() => onNavigate({ name: 'profile', params: { userId: entry.uid } })}
+                                        onClick={() => navigate(`/profile/${entry.uid}`)}
                                         className={`grid grid-cols-6 gap-4 items-center p-3 rounded-lg transition-colors w-full text-left animate-stagger-fade-in ${
                                             isCurrentUser ? 'bg-primary-900/50' : 'hover:bg-slate-700/50'
                                         }`}

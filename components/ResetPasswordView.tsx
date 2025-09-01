@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { verifyPasswordResetCode, confirmPasswordReset } from '../services/firebaseService.ts';
 import Card from './common/Card.tsx';
 import Button from './common/Button.tsx';
@@ -6,7 +7,6 @@ import { SpinnerIcon, LockIcon, EyeIcon, EyeOffIcon, CheckCircleIcon } from './i
 
 interface ResetPasswordViewProps {
     oobCode: string;
-    onFinish: () => void;
 }
 
 const PasswordInput: React.FC<{
@@ -34,13 +34,14 @@ const PasswordInput: React.FC<{
     </div>
 );
 
-const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ oobCode, onFinish }) => {
+const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ oobCode }) => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const navigate = useNavigate();
     
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -96,7 +97,7 @@ const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ oobCode, onFinish
                     <div className="text-center">
                         <CheckCircleIcon className="w-12 h-12 mx-auto text-emerald-400 mb-4" />
                         <p className="text-slate-200">Your password has been successfully updated!</p>
-                        <Button onClick={onFinish} className="mt-4 w-full">
+                        <Button onClick={() => navigate('/')} className="mt-4 w-full">
                             Proceed to Login
                         </Button>
                     </div>

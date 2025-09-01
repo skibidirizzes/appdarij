@@ -1,4 +1,5 @@
 import React, { useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UserContext } from '../context/UserContext.tsx';
 import { ACHIEVEMENTS, LEARNING_TOPICS } from '../constants.ts';
 import Card from './common/Card.tsx';
@@ -7,12 +8,9 @@ import { useTranslations } from '../hooks/useTranslations.ts';
 import { TranslationKey } from '../localization/translations.ts';
 import { LearningTopic } from '../types.ts';
 
-interface AchievementsViewProps {
-    onStartQuiz: (topic: LearningTopic, level: number) => void;
-}
-
-const AchievementsView: React.FC<AchievementsViewProps> = ({ onStartQuiz }) => {
+const AchievementsView: React.FC = () => {
     const { user } = useContext(UserContext);
+    const navigate = useNavigate();
     const { t } = useTranslations();
     const unlockedCount = user.unlockedAchievements.length;
     const totalCount = Object.keys(ACHIEVEMENTS).length;
@@ -20,7 +18,7 @@ const AchievementsView: React.FC<AchievementsViewProps> = ({ onStartQuiz }) => {
     
     const handleStartFirstQuiz = () => {
         const firstTopic = LEARNING_TOPICS[0].name;
-        onStartQuiz(firstTopic, 1);
+        navigate('/quiz', { state: { topic: firstTopic, level: 1 } });
     }
 
     if (unlockedCount === 0) {

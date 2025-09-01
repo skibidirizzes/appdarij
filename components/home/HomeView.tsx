@@ -1,8 +1,9 @@
 import React, { useState, useContext, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UserContext } from '../../context/UserContext.tsx';
 import Card from '../common/Card.tsx';
 import Button from '../common/Button.tsx';
-import { LearningTopic, View, WordInfo, Quiz, WordHistoryEntry, LeaderboardEntry, ScriptMode, Story } from '../../types.ts';
+import { LearningTopic, Quiz, WordInfo, WordHistoryEntry, LeaderboardEntry, ScriptMode, Story } from '../../types.ts';
 import { LEARNING_TOPICS, SPACED_REPETITION_THRESHOLD, LEVELS, STORY_LEVELS } from '../../constants.ts';
 import { LockIcon, VocabularyIcon, GrammarIcon, PhrasesIcon, LightbulbIcon, NumberIcon, SwordIcon, TrophyIcon, WordOfTheDayIcon, CheckCircleIcon, BookOpenIcon, SparklesIcon } from '../icons/index.ts';
 import { useTranslations } from '../../hooks/useTranslations.ts';
@@ -44,11 +45,8 @@ const DarijaText: React.FC<{ text: { latin: string; arabic?: string; }; scriptMo
   );
 };
 
-interface HomeViewProps {
-  onStartQuiz: (topic: LearningTopic, level: number, wordToReview?: WordInfo, subCategory?: string) => void;
-  onStartCustomQuiz: (quiz: Quiz, topic: LearningTopic) => void;
-  onNavigate: (view: View | { name: View; params?: any }) => void;
-}
+// FIX: Removed navigation props, will use state and router hooks
+interface HomeViewProps {}
 
 const TopicIcons: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
     'Vocabulary': VocabularyIcon,
@@ -144,9 +142,10 @@ const LearningPath: React.FC<{
 };
 
 
-const MiniLeaderboard: React.FC<{ onNavigate: (view: View | { name: View; params?: any }) => void; }> = ({ onNavigate }) => {
+const MiniLeaderboard: React.FC = () => {
     const { user } = useContext(UserContext);
     const { t } = useTranslations();
+    const navigate = useNavigate();
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [catchUpInfo, setCatchUpInfo] = useState<{ name: string; diff: number } | null>(null);
@@ -190,7 +189,7 @@ const MiniLeaderboard: React.FC<{ onNavigate: (view: View | { name: View; params
                     {leaderboard.slice(0, 3).map((entry, index) => (
                         <button 
                             key={entry.uid} 
-                            onClick={() => onNavigate({ name: 'profile', params: { userId: entry.uid }})}
+                            onClick={() => navigate(`/profile/${entry.uid}`)}
                             className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors animate-stagger-fade-in ${entry.uid === user.uid ? 'bg-primary-900/50' : 'bg-slate-800/60 hover:bg-slate-700/50'}`}
                             style={{ animationDelay: `${index * 100}ms` }}
                         >
@@ -224,15 +223,16 @@ const MiniLeaderboard: React.FC<{ onNavigate: (view: View | { name: View; params
                     )}
                 </div>
             )}
-            <Button onClick={() => onNavigate('leaderboard')} className="mt-4 w-full justify-center">
+            <Button onClick={() => navigate('/leaderboard')} className="mt-4 w-full justify-center">
                 {t('leaderboard_title')}
             </Button>
         </Card>
     )
 }
 
-const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCustomQuiz }) => {
+const HomeView: React.FC<HomeViewProps> = () => {
   const { user, isLevelUnlocked, mistakeAnalysis, addInfoToast } = useContext(UserContext);
+  const navigate = useNavigate();
   const [selectedTopic, setSelectedTopic] = useState<LearningTopic>('Vocabulary');
   const [selectedVocabSubCategory, setSelectedVocabSubCategory] = useState<typeof VOCAB_SUB_CATEGORIES[number]['key'] | null>(null);
   const [wordOfTheDay, setWordOfTheDay] = useState<WordInfo | null>(null);
@@ -267,7 +267,6 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCus
         if (!user) return [];
         const now = Date.now();
         const seenWords = new Set<string>();
-        // Iterate backwards to get most recent entries first
         return user.wordHistory
             .slice()
             .reverse()
@@ -294,6 +293,14 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCus
         return isUnlocked ? story : null;
     }, [user]);
 
+    const handleStartQuiz = (topic: LearningTopic, level: number, wordToReview?: WordInfo, subCategory?: string) => {
+        navigate('/quiz', { state: { topic, level, wordToReview, subCategory } });
+    };
+    
+    const onStartCustomQuiz = (quiz: Quiz, topic: LearningTopic) => {
+        navigate('/quiz', { state: { customQuiz: quiz, topic } });
+    };
+
     const handleStartSpacedRepetitionQuiz = async (words: WordHistoryEntry[]) => {
         const quiz = await generateQuiz('Spaced Repetition', 1, undefined, words);
         onStartCustomQuiz(quiz, 'Spaced Repetition');
@@ -301,17 +308,15 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCus
 
     const suggestion = useMemo(() => {
         if (!user) return null;
-        // Priority 0: AI Smart Suggestion
         if (mistakeAnalysis) {
             return {
                 text: mistakeAnalysis,
                 buttonText: t('home_smart_review_button'),
-                action: () => onNavigate('mistakes-bank'),
+                action: () => navigate('/mistakes-bank'),
                 isSmart: true,
             };
         }
         
-        // Priority 1: Spaced Repetition
         if (wordsForRepetition.length >= 5) {
             return {
                 text: t('home_suggestion_spaced_repetition'),
@@ -320,7 +325,6 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCus
             };
         }
         
-        // Priority 2: Continue weakest topic
         let minLevel = 999;
         let minTopicInfo: (typeof LEARNING_TOPICS)[0] | null = null;
         
@@ -340,32 +344,30 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCus
             return {
                 text: t('home_suggestion_continue_topic', { topic: t(minTopicInfo.nameKey), level: nextLevel }),
                 buttonText: t('home_suggestion_button'),
-                action: () => onStartQuiz(minTopicInfo!.name, nextLevel),
+                action: () => handleStartQuiz(minTopicInfo!.name, nextLevel),
             };
         }
 
-        // Fallback: Start a new topic
         const topicsNotStarted = LEARNING_TOPICS.filter(topicInfo => !user.progress[topicInfo.name]);
         if (topicsNotStarted.length > 0) {
             const topicToStart = topicsNotStarted[0];
             return {
                 text: t('home_suggestion_start_topic', { topic: t(topicToStart.nameKey) }),
                 buttonText: t('home_suggestion_button'),
-                action: () => onStartQuiz(topicToStart.name, 1),
+                action: () => handleStartQuiz(topicToStart.name, 1),
             };
         }
 
-        // Final fallback
         return {
             text: t('home_suggestion_all_done'),
             buttonText: t('home_suggestion_all_done_button'),
-            action: () => onNavigate('triliteral-root'),
+            action: () => navigate('/triliteral-root'),
         };
 
-    }, [user, t, onStartQuiz, onNavigate, isLevelUnlocked, wordsForRepetition, onStartCustomQuiz, mistakeAnalysis]);
+    }, [user, t, isLevelUnlocked, wordsForRepetition, mistakeAnalysis, navigate]);
     
     if (!user || !suggestion) {
-        return null; // Or a loading spinner
+        return null;
     }
     
     const subCat = selectedTopic === 'Vocabulary' && selectedVocabSubCategory 
@@ -383,9 +385,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCus
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
-                {/* Main Content Area */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Suggestion Card */}
                     <div className="relative">
                         <Card className="bg-primary-900/50 border-primary-500/50 animate-glow-primary">
                             <div className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -412,14 +412,13 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCus
                                         <p className="text-sm text-slate-300">Practice your reading and pronunciation with an interactive story.</p>
                                     </div>
                                 </div>
-                                <Button onClick={() => onNavigate({ name: 'story-mode', params: { story: unlockedStory } })} className="flex-shrink-0 w-full sm:w-auto">
+                                <Button onClick={() => navigate('/story-mode', { state: { story: unlockedStory } })} className="flex-shrink-0 w-full sm:w-auto">
                                     Read "{unlockedStory.title}"
                                 </Button>
                             </div>
                          </Card>
                     )}
 
-                    {/* Learning Path */}
                     <div className="space-y-4">
                         <h2 className="text-2xl font-bold text-white">{t('home_topics_title')}</h2>
                          <div className="flex flex-wrap gap-2">
@@ -470,7 +469,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCus
                                     subCategoryNameKey={subCat?.nameKey}
                                     onStartQuiz={(topic, level) => {
                                         const subCatFound = VOCAB_SUB_CATEGORIES.find(sc => sc.key === selectedVocabSubCategory);
-                                        onStartQuiz(topic, level, undefined, subCatFound?.englishName);
+                                        handleStartQuiz(topic, level, undefined, subCatFound?.englishName);
                                     }}
                                     userProgress={user.progress} 
                                     t={t} 
@@ -480,7 +479,6 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCus
                     </div>
                 </div>
 
-                {/* Sidebar Column */}
                 <div className="lg:col-span-1 space-y-6">
                     <img 
                       src="https://cdn.dribbble.com/users/1092276/screenshots/6253995/camel_character_animation_dribbble.gif"
@@ -490,14 +488,13 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartQuiz, onNavigate, onStartCus
                      <Card className="p-6">
                          <h3 className="text-xl font-bold text-white mb-2">Quick Duel</h3>
                          <p className="text-slate-300 text-sm">Challenge a friend to a quick quiz and test your skills!</p>
-                         <Button onClick={() => onNavigate('duel-setup')} className="mt-4 w-full justify-center flex items-center gap-2">
+                         <Button onClick={() => navigate('/duel-setup')} className="mt-4 w-full justify-center flex items-center gap-2">
                             <SwordIcon className="w-5 h-5"/>
                              Start a Duel
                          </Button>
                      </Card>
                      <HomeSidebarTabs />
-                     <MiniLeaderboard onNavigate={onNavigate} />
-                    {/* Word of the Day */}
+                     <MiniLeaderboard />
                     <Card>
                          <div className="p-6">
                             <div className="flex justify-between items-center mb-4">

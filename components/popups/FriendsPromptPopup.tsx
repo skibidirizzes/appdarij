@@ -1,20 +1,20 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Modal from '../common/Modal.tsx';
 import Button from '../common/Button.tsx';
 import { UserGroupIcon } from '../icons/index.ts';
-import { View } from '../../types.ts';
 import { useTranslations } from '../../hooks/useTranslations.ts';
 
 interface FriendsPromptPopupProps {
     onDismiss: () => void;
-    onNavigate: (view: View) => void;
 }
 
-export const FriendsPromptPopup: React.FC<FriendsPromptPopupProps> = ({ onDismiss, onNavigate }) => {
+export const FriendsPromptPopup: React.FC<FriendsPromptPopupProps> = ({ onDismiss }) => {
     const { t } = useTranslations();
+    const navigate = useNavigate();
 
     const handleNavigate = () => {
-        onNavigate('friends');
+        navigate('/friends');
         onDismiss();
     };
 

@@ -58,9 +58,8 @@ export const signOut = (): Promise<void> => {
 };
 
 export const sendPasswordResetEmail = (email: string): Promise<void> => {
-    // This now points to our custom in-app page
     const actionCodeSettings = {
-        url: `${window.location.origin}${window.location.pathname}?mode=resetPassword`,
+        url: `${window.location.origin}/reset-password`,
         handleCodeInApp: true,
     };
     return auth.sendPasswordResetEmail(email, actionCodeSettings);
@@ -88,9 +87,9 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 
 export const getPublicUserProfiles = async (uids: string[]): Promise<UserProfile[]> => {
     if (uids.length === 0) return [];
-    // Firestore 'in' query is limited to 10 elements. For a real app with more friends, this would need batching.
-    const snapshot = await usersCollection.where(firebase.firestore.FieldPath.documentId(), 'in', uids.slice(0, 10)).get();
-    return snapshot.docs.map(doc => (doc.data() as UserProfile));
+    const profilePromises = uids.map(uid => getUserProfile(uid));
+    const profiles = await Promise.all(profilePromises);
+    return profiles.filter(p => p !== null) as UserProfile[];
 };
 
 export const createUserProfile = (uid: string, userProfile: UserProfile): Promise<void> => {
@@ -103,9 +102,8 @@ export const updateUserProfile = (uid: string, updates: Partial<UserProfile> | {
 
 export const getUsersByIds = async (uids: string[]): Promise<Friend[]> => {
     if (uids.length === 0) return [];
-    // Firestore 'in' query is limited to 10 elements. For a real app with more friends, this would need batching.
-    const snapshot = await usersCollection.where(firebase.firestore.FieldPath.documentId(), 'in', uids.slice(0, 10)).get();
-    return snapshot.docs.map(doc => ({ rank: 0, ...(doc.data() as UserProfile) } as Friend));
+    const profiles = await getPublicUserProfiles(uids);
+    return profiles.map(profile => ({ rank: 0, ...profile } as Friend));
 };
 
 export const searchUsers = async (query: string, excludeUids: string[]): Promise<Friend[]> => {

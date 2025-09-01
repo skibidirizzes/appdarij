@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { UserContext } from '../context/UserContext.tsx';
-import { View } from '../types.ts';
 import { useTranslations } from '../hooks/useTranslations.ts';
 import { 
     BookOpenIcon, 
@@ -25,8 +25,6 @@ import {
 } from './icons/index.ts';
 
 interface SidebarProps {
-    currentView: View;
-    onNavigate: (view: View | { name: View, params?: any }) => void;
     isCollapsed: boolean;
     onToggle: () => void;
 }
@@ -58,31 +56,33 @@ const NavItem: React.FC<{
     </div>
 );
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, isCollapsed, onToggle }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
     const { user } = useContext(UserContext);
     const { t } = useTranslations();
+    const navigate = useNavigate();
+    const location = useLocation();
     
     const isParentalLinkActive = user?.childAccountIds?.length > 0 || !!user?.parentAccountId;
     
     const allNavItems = [
         // Learn
-        { view: 'dashboard', label: t('nav_dashboard'), icon: BookOpenIcon },
-        { view: 'mastery', label: "Mastery", icon: DumbbellIcon },
-        { view: 'mistakes-bank', label: "Mistakes Bank", icon: ClipboardListIcon },
-        { view: 'conversation', label: t('nav_conversation'), icon: ChatBubbleIcon },
-        { view: 'phoneme-practice', label: t('nav_phoneme_practice'), icon: SoundWaveIcon },
+        { path: '/dashboard', label: t('nav_dashboard'), icon: BookOpenIcon },
+        { path: '/mastery', label: "Mastery", icon: DumbbellIcon },
+        { path: '/mistakes-bank', label: "Mistakes Bank", icon: ClipboardListIcon },
+        { path: '/conversation', label: t('nav_conversation'), icon: ChatBubbleIcon },
+        { path: '/phoneme-practice', label: t('nav_phoneme_practice'), icon: SoundWaveIcon },
         { isSeparator: true },
         // Community & Social
-        { view: 'friends', label: t('nav_friends'), icon: UserGroupIcon },
-        { view: 'leaderboard', label: t('nav_leaderboard'), icon: LeaderboardIcon },
-        { view: 'duel-setup', label: "Duels", icon: SwordIcon },
-        { view: 'achievements', label: t('nav_achievements'), icon: TrophyIcon },
-        { view: 'parental-controls', label: t('nav_parental_controls'), icon: ShieldCheckIcon, notification: isParentalLinkActive },
+        { path: '/friends', label: t('nav_friends'), icon: UserGroupIcon },
+        { path: '/leaderboard', label: t('nav_leaderboard'), icon: LeaderboardIcon },
+        { path: '/duel-setup', label: "Duels", icon: SwordIcon },
+        { path: '/achievements', label: t('nav_achievements'), icon: TrophyIcon },
+        ...(isParentalLinkActive ? [{ path: '/parental-controls', label: t('nav_parental_controls'), icon: ShieldCheckIcon, notification: true }] : []),
         { isSeparator: true },
         // Tools
-        { view: 'dictionary', label: t('nav_dictionary'), icon: LibraryIcon },
-        { view: 'triliteral-root', label: t('nav_triliteral_root'), icon: RootIcon },
-    ] as const;
+        { path: '/dictionary', label: t('nav_dictionary'), icon: LibraryIcon },
+        { path: '/triliteral-root', label: t('nav_triliteral_root'), icon: RootIcon },
+    ];
 
 
     if (!user) return null;
@@ -103,14 +103,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, isCollapsed,
                     if ('isSeparator' in item && item.isSeparator) {
                         return <hr key={`sep-${index}`} className={`my-2 border-slate-700 ${isCollapsed ? 'mx-2' : ''}`} />;
                     }
-                    if ('view' in item) {
+                    if ('path' in item) {
                         return (
                             <NavItem
-                                key={item.view}
+                                key={item.path}
                                 label={item.label}
                                 icon={item.icon}
-                                isActive={currentView === item.view}
-                                onClick={() => onNavigate(item.view)}
+                                isActive={location.pathname === item.path}
+                                onClick={() => navigate(item.path)}
                                 isCollapsed={isCollapsed}
                                 hasNotification={'notification' in item && item.notification}
                             />
@@ -125,15 +125,15 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, isCollapsed,
                      <NavItem
                         label={t('nav_settings')}
                         icon={GearIcon}
-                        isActive={currentView === 'settings'}
-                        onClick={() => onNavigate('settings')}
+                        isActive={location.pathname === '/settings'}
+                        onClick={() => navigate('/settings')}
                         isCollapsed={isCollapsed}
                     />
                 </div>
                 <div className={`pt-2 border-t border-[var(--color-border-card)]`}>
                     <button 
-                        onClick={() => onNavigate({ name: 'profile', params: { userId: user.uid }})}
-                        className={`flex items-center w-full p-2 rounded-lg text-left transition-colors hover:bg-slate-700/50 ${currentView === 'profile' ? 'bg-slate-700' : ''}`}
+                        onClick={() => navigate(`/profile/${user.uid}`)}
+                        className={`flex items-center w-full p-2 rounded-lg text-left transition-colors hover:bg-slate-700/50 ${location.pathname.startsWith('/profile') ? 'bg-slate-700' : ''}`}
                     >
                         <img src={user.photoURL} alt="Your profile" className="w-10 h-10 rounded-full flex-shrink-0" />
                         {!isCollapsed && (
