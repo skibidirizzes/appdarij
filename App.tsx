@@ -36,6 +36,7 @@ import DuelSetupView from './components/DuelSetupView.tsx';
 import DuelQuizView from './components/DuelQuizView.tsx';
 import MasteryView from './components/MasteryView.tsx';
 import LabsView from './components/LabsView.tsx';
+import ResetPasswordView from './components/ResetPasswordView.tsx';
 
 
 interface CurrentView {
@@ -306,16 +307,41 @@ const MainAppLayout: React.FC = () => {
 
 const AppContent: React.FC = () => {
     const { user, isLoading } = useContext(UserContext);
+    const [resetCode, setResetCode] = useState<string | null>(null);
+    const [viewMode, setViewMode] = useState<'loading' | 'app' | 'auth' | 'resetPassword'>('loading');
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const mode = params.get('mode');
+        const oobCode = params.get('oobCode');
+
+        if (mode === 'resetPassword' && oobCode) {
+            setResetCode(oobCode);
+            setViewMode('resetPassword');
+            // Clean the URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } else if (!isLoading) {
+             setViewMode(user ? 'app' : 'auth');
+        }
+    }, [isLoading, user]);
     
-    if (isLoading) {
+    if (viewMode === 'loading') {
         return (
             <div className="flex justify-center items-center h-screen bg-slate-900">
                 <SpinnerIcon className="w-10 h-10 animate-spin text-primary-400" />
             </div>
-        )
+        );
+    }
+    
+    if (viewMode === 'resetPassword' && resetCode) {
+        return <ResetPasswordView oobCode={resetCode} onFinish={() => setViewMode('auth')} />;
     }
 
-    return user ? <MainAppLayout /> : <AuthView />;
+    if (viewMode === 'app') {
+        return <MainAppLayout />;
+    }
+
+    return <AuthView />;
 }
 
 const App: React.FC = () => {

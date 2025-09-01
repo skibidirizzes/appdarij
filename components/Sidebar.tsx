@@ -37,24 +37,32 @@ const NavItem: React.FC<{
     isActive: boolean;
     onClick: () => void;
     isCollapsed: boolean;
-}> = ({ icon: Icon, label, isActive, onClick, isCollapsed }) => (
-    <button
-        onClick={onClick}
-        title={isCollapsed ? label : ''}
-        className={`flex items-center w-full py-2 rounded-lg transition-colors duration-200 ${isCollapsed ? 'px-3 justify-center' : 'px-4'} ${
-            isActive
-                ? 'bg-primary-500 text-on-primary font-semibold shadow-lg'
-                : 'text-[var(--color-text-muted)] hover:bg-slate-700/50 hover:text-[var(--color-text-base)]'
-        }`}
-    >
-        <Icon className={`w-6 h-6 transition-colors duration-200 flex-shrink-0 ${isActive ? 'text-on-primary' : 'text-primary-400 group-hover:text-primary-300'}`} />
-        {!isCollapsed && <span className="flex-1 ml-4 whitespace-nowrap text-left">{label}</span>}
-    </button>
+    hasNotification?: boolean;
+}> = ({ icon: Icon, label, isActive, onClick, isCollapsed, hasNotification }) => (
+    <div className="relative">
+        <button
+            onClick={onClick}
+            title={isCollapsed ? label : ''}
+            className={`flex items-center w-full py-2 rounded-lg transition-colors duration-200 ${isCollapsed ? 'px-3 justify-center' : 'px-4'} ${
+                isActive
+                    ? 'bg-primary-500 text-on-primary font-semibold shadow-lg'
+                    : 'text-[var(--color-text-muted)] hover:bg-slate-700/50 hover:text-[var(--color-text-base)]'
+            }`}
+        >
+            <Icon className={`w-6 h-6 transition-colors duration-200 flex-shrink-0 ${isActive ? 'text-on-primary' : 'text-primary-400 group-hover:text-primary-300'}`} />
+            {!isCollapsed && <span className="flex-1 ml-4 whitespace-nowrap text-left">{label}</span>}
+        </button>
+        {hasNotification && (
+            <span className="absolute top-1 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[var(--color-bg-sidebar)]"></span>
+        )}
+    </div>
 );
 
 const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, isCollapsed, onToggle }) => {
     const { user } = useContext(UserContext);
     const { t } = useTranslations();
+    
+    const isParentalLinkActive = user?.childAccountIds?.length > 0 || !!user?.parentAccountId;
     
     const allNavItems = [
         // Learn
@@ -69,6 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, isCollapsed,
         { view: 'leaderboard', label: t('nav_leaderboard'), icon: LeaderboardIcon },
         { view: 'duel-setup', label: "Duels", icon: SwordIcon },
         { view: 'achievements', label: t('nav_achievements'), icon: TrophyIcon },
+        { view: 'parental-controls', label: t('nav_parental_controls'), icon: ShieldCheckIcon, notification: isParentalLinkActive },
         { isSeparator: true },
         // Tools
         { view: 'dictionary', label: t('nav_dictionary'), icon: LibraryIcon },
@@ -103,6 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, isCollapsed,
                                 isActive={currentView === item.view}
                                 onClick={() => onNavigate(item.view)}
                                 isCollapsed={isCollapsed}
+                                hasNotification={'notification' in item && item.notification}
                             />
                         );
                     }

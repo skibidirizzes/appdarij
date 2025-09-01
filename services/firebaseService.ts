@@ -58,7 +58,20 @@ export const signOut = (): Promise<void> => {
 };
 
 export const sendPasswordResetEmail = (email: string): Promise<void> => {
-    return auth.sendPasswordResetEmail(email);
+    // This now points to our custom in-app page
+    const actionCodeSettings = {
+        url: `${window.location.origin}${window.location.pathname}?mode=resetPassword`,
+        handleCodeInApp: true,
+    };
+    return auth.sendPasswordResetEmail(email, actionCodeSettings);
+};
+
+export const verifyPasswordResetCode = (code: string): Promise<string> => {
+    return auth.verifyPasswordResetCode(code);
+};
+
+export const confirmPasswordReset = (code: string, newPassword: string): Promise<void> => {
+    return auth.confirmPasswordReset(code, newPassword);
 };
 
 // --- User Profile ---

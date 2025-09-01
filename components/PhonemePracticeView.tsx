@@ -184,7 +184,21 @@ const PhonemePracticeView: React.FC = () => {
     }, [recognitionState, t, handleGetFeedback]);
 
 
-    const startRecognition = () => {
+    const startRecognition = async () => {
+        if (micPermission !== 'granted') {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => track.stop());
+                const newStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+                setMicPermission(newStatus.state);
+                if (newStatus.state !== 'granted') return;
+            } catch (err) {
+                console.error("Mic permission error", err);
+                setMicPermission('denied');
+                return;
+            }
+        }
+
         if (recognitionRef.current && ['idle', 'recognized'].includes(recognitionState)) {
             setTranscript('');
             setFeedback('');
@@ -322,8 +336,8 @@ const PhonemePracticeView: React.FC = () => {
                  isLoadingFeedback ? 'Analyzing...' : 
                  (resultState === 'incorrect' ? t('phoneme_practice_try_again_button') : t('phoneme_practice_record_button'))}
             </p>
-            {micPermission === 'prompt' && <p className="text-center text-xs text-slate-400 mt-1">Microphone permission will be requested.</p>}
-            {recognitionState === 'denied' && <p className="text-red-400 text-sm text-center mt-2">{t('quiz_speech_denied')}</p>}
+            {micPermission === 'prompt' && <p className="text-center text-xs text-slate-400 mt-1">Tap the microphone to start. Your browser will ask for permission.</p>}
+            {micPermission === 'denied' && <p className="text-red-400 text-sm text-center mt-2">{t('quiz_speech_denied')}</p>}
             {speechError && (
                 <p className="text-amber-400 p-2 bg-amber-900/30 rounded-md text-sm text-center mt-2">{speechError}</p>
             )}

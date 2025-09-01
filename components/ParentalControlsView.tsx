@@ -1,16 +1,18 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect, useCallback } from 'react';
 import { UserContext } from '../context/UserContext.tsx';
 import { useTranslations } from '../hooks/useTranslations.ts';
 import Card from './common/Card.tsx';
 import Button from './common/Button.tsx';
-import { ShieldCheckIcon, SpinnerIcon, CheckCircleIcon, TrophyIcon } from './icons/index.ts';
-import { UserProfile } from '../types.ts';
+import { ShieldCheckIcon, SpinnerIcon, CheckCircleIcon, TrophyIcon, XCircleIcon, RefreshCwIcon } from './icons/index.ts';
+import { UserProfile, Mistake } from '../types.ts';
+import { getUserProfile } from '../services/firebaseService.ts';
+
 
 // Mock function to simulate fetching child data
 const getChildData = async (code: string): Promise<Partial<UserProfile> | null> => {
-    // In a real app, this would be a backend call. Here we mock it.
+    // In a real app, this would query a user with this linking code.
     await new Promise(res => setTimeout(res, 500));
-    // This now succeeds for any 6-character alphanumeric code.
+    
     if (code && code.length === 6 && /^[A-Z0-9]+$/.test(code)) {
          return {
             uid: `mock_child_${code}`,
@@ -23,6 +25,12 @@ const getChildData = async (code: string): Promise<Partial<UserProfile> | null> 
             questionsAnswered: 200,
             correctAnswers: 170,
             unlockedAchievements: ['first_steps', 'quiz_taker', 'topic_starter_vocabulary', 'level_5_vocabulary'],
+            mistakes: [
+                { question: { question: "Translate: 'I want to eat'", type: 'writing' }, userAnswer: 'bghit nakul' },
+                { question: { question: "What is 'car'?", type: 'multiple-choice' }, userAnswer: 'tomobil' },
+                { question: { question: "How do you say 'thank you'?", type: 'speaking' }, userAnswer: 'choukran' },
+            ] as Mistake[],
+            parentAccountId: 'mock_parent_id',
          };
     }
     return null;
@@ -33,15 +41,12 @@ const ChildDashboard: React.FC<{ childData: Partial<UserProfile>; onDisconnect: 
     
     const childGoal = childData.settings?.dailyGoal || 50;
 
-    const handleGoalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newGoal = parseInt(e.target.value, 10);
-        // In a real app, this would update the child's profile in the backend.
-        alert(`In a real app, this would set ${childData.displayName}'s goal to ${newGoal}.`);
-    };
-
     return (
-        <div className="space-y-6">
-            <h3 className="text-2xl font-bold text-center text-white">{t('parental_controls_child_stats', { name: childData.displayName })}</h3>
+        <div className="space-y-6 animate-fade-in">
+            <div className="text-center">
+                 <img src={childData.photoURL} alt={childData.displayName} className="w-24 h-24 rounded-full mx-auto border-4 border-primary-400 mb-2"/>
+                <h3 className="text-2xl font-bold text-white">{t('parental_controls_child_stats', { name: childData.displayName })}</h3>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="p-4">
                      <p className="font-semibold text-lg mb-2 text-center text-slate-300">Overall Stats</p>
@@ -70,35 +75,16 @@ const ChildDashboard: React.FC<{ childData: Partial<UserProfile>; onDisconnect: 
                     </div>
                 </Card>
                  <Card className="p-4 md:col-span-2">
-                    <p className="font-semibold text-lg mb-2 text-slate-300">{t('parental_controls_manage_goals')}</p>
-                     <div className="flex items-center gap-4">
-                        <input
-                            type="range"
-                            min="10"
-                            max="200"
-                            step="10"
-                            defaultValue={childGoal}
-                            onChange={handleGoalChange}
-                            className="w-full"
-                        />
-                        <span className="font-bold text-primary-300 w-16 text-center">{childGoal} DH</span>
-                    </div>
-                </Card>
-                 <Card className="p-4 md:col-span-2">
-                    <p className="font-semibold text-lg mb-3 text-slate-300">{t('parental_controls_recent_activity')}</p>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {childData.unlockedAchievements?.length > 0 ? (
-                            childData.unlockedAchievements.slice(-5).reverse().map(achId => (
-                                <div key={achId} className="flex items-center gap-3 text-sm p-2 bg-slate-800/50 rounded-md">
-                                    <TrophyIcon className="w-5 h-5 text-amber-400"/>
-                                    <p className="text-slate-300">Unlocked achievement: <span className="font-semibold text-white">{achId.replace(/_/g, ' ')}</span></p>
+                     <h3 className="font-semibold text-lg mb-3 text-slate-300">Recent Mistakes</h3>
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                        {childData.mistakes?.length > 0 ? (
+                            childData.mistakes.slice(-5).reverse().map((mistake, i) => (
+                                <div key={i} className="flex items-center gap-3 text-sm p-2 bg-slate-800/50 rounded-md">
+                                    <XCircleIcon className="w-5 h-5 text-red-400 flex-shrink-0"/>
+                                    <p className="text-slate-300">Q: "{mistake.question.question}"</p>
                                 </div>
                             ))
-                        ) : <p className="text-slate-400 text-sm">No recent achievements.</p>}
-                        <div className="flex items-center gap-3 text-sm p-2 bg-slate-800/50 rounded-md">
-                             <CheckCircleIcon className="w-5 h-5 text-emerald-400"/>
-                             <p className="text-slate-300">Completed a <span className="font-semibold text-white">Vocabulary</span> quiz.</p>
-                        </div>
+                        ) : <p className="text-slate-400 text-sm">No recent mistakes. Great job!</p>}
                     </div>
                 </Card>
             </div>
@@ -109,15 +95,44 @@ const ChildDashboard: React.FC<{ childData: Partial<UserProfile>; onDisconnect: 
     );
 }
 
+const ChildsLinkedView: React.FC<{ parentProfile: UserProfile }> = ({ parentProfile }) => {
+    return (
+        <Card className="p-8 text-center animate-fade-in">
+            <img src={parentProfile.photoURL} alt={parentProfile.displayName} className="w-20 h-20 rounded-full mx-auto border-4 border-emerald-400 mb-4"/>
+            <h3 className="text-xl font-bold text-white">Account Linked!</h3>
+            <p className="text-slate-300 mt-2">Your progress is being shared with <span className="font-semibold text-white">{parentProfile.displayName}</span>.</p>
+        </Card>
+    );
+};
+
 const ParentalControlsView: React.FC = () => {
-    const { user, addInfoToast } = useContext(UserContext);
+    const { user, addInfoToast, updateProfileDetails } = useContext(UserContext);
     const { t } = useTranslations();
     const [isLoading, setIsLoading] = useState(false);
     const [linkCode, setLinkCode] = useState('');
     const [error, setError] = useState('');
 
-    // Mock state for child data
     const [childData, setChildData] = useState<Partial<UserProfile> | null>(null);
+    const [parentProfile, setParentProfile] = useState<UserProfile | null>(null);
+    const [linkingCode, setLinkingCode] = useState(() => user.uid.slice(-6).toUpperCase());
+
+    const linkedChildId = user.childAccountIds?.[0];
+
+    useEffect(() => {
+        const fetchLinkedData = async () => {
+            setIsLoading(true);
+            if (linkedChildId) {
+                const data = await getChildData(linkedChildId); // In real app, use UID to fetch
+                setChildData(data);
+            } else if (user.parentAccountId) {
+                const data = await getUserProfile(user.parentAccountId);
+                setParentProfile(data);
+            }
+            setIsLoading(false);
+        };
+        fetchLinkedData();
+    }, [linkedChildId, user.parentAccountId]);
+
 
     const handleLinkAccount = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -125,6 +140,9 @@ const ParentalControlsView: React.FC = () => {
         setError('');
         const data = await getChildData(linkCode);
         if(data) {
+            // Mock update to user context
+            user.childAccountIds = [data.uid];
+            updateProfileDetails({ childAccountIds: [data.uid] });
             setChildData(data);
             addInfoToast({ type: 'success', message: `Successfully linked with ${data.displayName}!`});
         } else {
@@ -134,23 +152,37 @@ const ParentalControlsView: React.FC = () => {
     }
     
     const handleCopyCode = () => {
-        const code = user.uid.slice(-6).toUpperCase();
-        navigator.clipboard.writeText(code).then(() => {
+        navigator.clipboard.writeText(linkingCode).then(() => {
             addInfoToast({type: 'success', message: 'Code copied to clipboard!'});
-        }).catch(err => {
-             addInfoToast({type: 'error', message: 'Failed to copy code.'});
         });
     }
 
+    const handleRegenerateCode = () => {
+        const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        setLinkingCode(newCode);
+        addInfoToast({type: 'info', message: 'New linking code generated.'});
+    }
+
     const handleDisconnect = () => {
+        // Mock update
+        user.childAccountIds = [];
+        updateProfileDetails({ childAccountIds: [] });
         setChildData(null);
         setLinkCode('');
         setError('');
         addInfoToast({ type: 'info', message: 'Account disconnected.'});
     };
     
+    if (isLoading) {
+        return <div className="flex justify-center p-8"><SpinnerIcon className="w-10 h-10 animate-spin" /></div>
+    }
+
     if(childData) {
         return <ChildDashboard childData={childData} onDisconnect={handleDisconnect} />;
+    }
+
+    if(parentProfile) {
+        return <ChildsLinkedView parentProfile={parentProfile} />;
     }
 
     return (
@@ -188,10 +220,15 @@ const ParentalControlsView: React.FC = () => {
                      <p className="text-slate-400 text-sm mt-1 mb-4">{t('parental_controls_child_instructions')}</p>
                      <div className="p-4 bg-slate-900/50 border-2 border-dashed border-slate-600 rounded-lg text-center">
                         <p className="text-3xl font-bold tracking-widest font-mono text-primary-300">
-                            {user.uid.slice(-6).toUpperCase()}
+                           {linkingCode}
                         </p>
                      </div>
-                     <Button onClick={handleCopyCode} variant="outline" size="sm" className="w-full mt-3">Copy Code</Button>
+                     <div className="flex gap-2 mt-3">
+                        <Button onClick={handleCopyCode} variant="outline" size="sm" className="w-full">Copy Code</Button>
+                        <Button onClick={handleRegenerateCode} variant="secondary" size="sm" className="w-full flex items-center justify-center gap-2">
+                           <RefreshCwIcon className="w-4 h-4" /> Regenerate
+                        </Button>
+                     </div>
                 </Card>
             </div>
         </div>

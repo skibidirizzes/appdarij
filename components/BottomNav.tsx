@@ -14,16 +14,20 @@ const NavItem: React.FC<{
     label: string;
     isActive: boolean;
     onClick: () => void;
-}> = ({ icon: Icon, label, isActive, onClick }) => (
+    hasNotification?: boolean;
+}> = ({ icon: Icon, label, isActive, onClick, hasNotification }) => (
     <button
         onClick={onClick}
-        className={`flex flex-col items-center justify-center flex-shrink-0 min-w-[72px] pt-2 pb-1 transition-colors duration-200 ${
+        className={`relative flex flex-col items-center justify-center flex-shrink-0 min-w-[72px] pt-2 pb-1 transition-colors duration-200 ${
             isActive ? 'text-primary-400' : 'text-slate-400 hover:text-white'
         }`}
         aria-label={label}
     >
         <Icon className="w-6 h-6" />
         <span className={`text-xs mt-1 ${isActive ? 'font-bold' : ''}`}>{label}</span>
+        {hasNotification && (
+            <span className="absolute top-1 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-800"></span>
+        )}
     </button>
 );
 
@@ -31,11 +35,14 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, onNavigate }) => {
     const { t } = useTranslations();
     const { user } = useContext(UserContext);
     
+    const isParentalLinkActive = user?.childAccountIds?.length > 0 || !!user?.parentAccountId;
+    
     const navItems = ([
         { view: 'dashboard', label: t('nav_dashboard'), icon: BookOpenIcon },
         { view: 'phoneme-practice', label: t('nav_phoneme_practice'), icon: SoundWaveIcon },
         { view: 'mastery', label: "Mastery", icon: DumbbellIcon },
         { view: 'friends', label: t('nav_friends'), icon: UserGroupIcon },
+        { view: 'parental-controls', label: t('nav_parental_controls'), icon: ShieldCheckIcon, notification: isParentalLinkActive },
         { view: 'settings', label: t('nav_settings'), icon: GearIcon },
     ] as const)
 
@@ -48,6 +55,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, onNavigate }) => {
                     icon={item.icon}
                     isActive={currentView === item.view}
                     onClick={() => onNavigate(item.view)}
+                    // FIX: Safely access the optional 'notification' property using the 'in' operator type guard.
+                    hasNotification={'notification' in item && item.notification}
                 />
             ))}
         </nav>
