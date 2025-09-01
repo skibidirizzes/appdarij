@@ -69,7 +69,7 @@ const ForgotPasswordModal: React.FC<{onClose: () => void}> = ({ onClose }) => {
             <div className="p-6">
                 {sent ? (
                     <div className="text-center">
-                        <p className="text-slate-200">A password reset link has been sent to <strong>{email}</strong>. Please check your inbox.</p>
+                        <p className="text-slate-200">A password reset link has been sent to <strong>{email}</strong>. Please check your inbox and spam folder.</p>
                         <Button onClick={onClose} className="mt-4 w-full">Close</Button>
                     </div>
                 ) : (

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { UserProfile, CommunityPost, View, Sticker } from '../types.ts';
 import { UserContext } from '../context/UserContext.tsx';
-import { getPublicUserProfiles, getCommunityPostsByUser } from '../services/firebaseService.ts';
+import { getUserProfile, getCommunityPostsByUser } from '../services/firebaseService.ts';
 import Card from './common/Card.tsx';
 import Button from './common/Button.tsx';
 import { SpinnerIcon, TrophyIcon, UserIcon, ClockIcon } from './icons/index.ts';
@@ -72,20 +72,22 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, onNavigate }) => {
             setIsLoading(true);
             setError(null);
             try {
-                const [profileDataArray, postData] = await Promise.all([
-                    getPublicUserProfiles([userId]),
+                const [profileData, postData] = await Promise.all([
+                    getUserProfile(userId),
                     getCommunityPostsByUser(userId)
                 ]);
-
-                const profileData = profileDataArray[0];
 
                 if (!profileData) {
                     throw new Error("Could not find user profile.");
                 }
                 setProfile(profileData);
                 setPosts(postData);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Failed to load profile.");
+            } catch (err: any) {
+                 if (err.code === 'permission-denied') {
+                    setError("This user's profile is private.");
+                } else {
+                    setError(err.message || "Failed to load profile.");
+                }
             } finally {
                 setIsLoading(false);
             }

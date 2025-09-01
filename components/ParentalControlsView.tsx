@@ -7,13 +7,13 @@ import { ShieldCheckIcon, SpinnerIcon, CheckCircleIcon, TrophyIcon } from './ico
 import { UserProfile } from '../types.ts';
 
 // Mock function to simulate fetching child data
-const getChildData = async (uid: string): Promise<Partial<UserProfile> | null> => {
+const getChildData = async (code: string): Promise<Partial<UserProfile> | null> => {
     // In a real app, this would be a backend call. Here we mock it.
     await new Promise(res => setTimeout(res, 500));
-    // This now succeeds for a specific, testable code
-    if (uid === 'CHILD123' || uid === 'LUJPA2') {
+    // This now succeeds for any 6-character alphanumeric code.
+    if (code && code.length === 6 && /^[A-Z0-9]+$/.test(code)) {
          return {
-            uid: 'mock_child_1',
+            uid: `mock_child_${code}`,
             displayName: 'Jamal Jr.',
             photoURL: `https://api.dicebear.com/8.x/adventurer/svg?seed=JamalJr`,
             score: 4250,
@@ -28,17 +28,14 @@ const getChildData = async (uid: string): Promise<Partial<UserProfile> | null> =
     return null;
 }
 
-const ChildDashboard: React.FC<{ childData: Partial<UserProfile> }> = ({ childData }) => {
+const ChildDashboard: React.FC<{ childData: Partial<UserProfile>; onDisconnect: () => void }> = ({ childData, onDisconnect }) => {
     const { t } = useTranslations();
-    const { user, updateSettings } = useContext(UserContext); // Parent context
     
-    // Use childData's goal, or fallback to parent's if something is wrong
-    const childGoal = childData.settings?.dailyGoal || user.settings.dailyGoal;
+    const childGoal = childData.settings?.dailyGoal || 50;
 
     const handleGoalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        // In a real app, this would update the child's profile in the backend.
-        // Here, we just simulate the change for the UI.
         const newGoal = parseInt(e.target.value, 10);
+        // In a real app, this would update the child's profile in the backend.
         alert(`In a real app, this would set ${childData.displayName}'s goal to ${newGoal}.`);
     };
 
@@ -105,6 +102,9 @@ const ChildDashboard: React.FC<{ childData: Partial<UserProfile> }> = ({ childDa
                     </div>
                 </Card>
             </div>
+             <div className="mt-6 text-center">
+                <Button onClick={onDisconnect} className="bg-red-800/80 hover:bg-red-700/80">Disconnect Account</Button>
+            </div>
         </div>
     );
 }
@@ -126,6 +126,7 @@ const ParentalControlsView: React.FC = () => {
         const data = await getChildData(linkCode);
         if(data) {
             setChildData(data);
+            addInfoToast({ type: 'success', message: `Successfully linked with ${data.displayName}!`});
         } else {
             setError("Invalid code. Please check and try again.");
         }
@@ -140,9 +141,16 @@ const ParentalControlsView: React.FC = () => {
              addInfoToast({type: 'error', message: 'Failed to copy code.'});
         });
     }
+
+    const handleDisconnect = () => {
+        setChildData(null);
+        setLinkCode('');
+        setError('');
+        addInfoToast({ type: 'info', message: 'Account disconnected.'});
+    };
     
     if(childData) {
-        return <ChildDashboard childData={childData} />;
+        return <ChildDashboard childData={childData} onDisconnect={handleDisconnect} />;
     }
 
     return (
@@ -162,7 +170,7 @@ const ParentalControlsView: React.FC = () => {
                         <input 
                             type="text"
                             value={linkCode}
-                            onChange={e => setLinkCode(e.target.value.toUpperCase())}
+                            onChange={e => setLinkCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
                             placeholder="Enter 6-digit code"
                             maxLength={6}
                             className="w-full p-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white tracking-widest text-center font-mono focus:ring-2 focus:ring-primary-400"

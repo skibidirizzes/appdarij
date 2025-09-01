@@ -221,10 +221,26 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
   const resetAllData = async () => {};
   const clearProgress = () => {};
-  const enableNotifications = async () => false;
-  const markThemePromptAsSeen = async () => { if(user) await updateUserProfile(user.uid, { hasSeenThemePrompt: true }) };
-  const markFriendsPromptAsSeen = async () => { if(user) await updateUserProfile(user.uid, { hasSeenFriendsPrompt: true }) };
-  const markNotificationPromptAsSeen = async () => { if(user) await updateUserProfile(user.uid, { hasSeenNotificationPrompt: true }) };
+  const enableNotifications = async () => {
+      if(!user) return false;
+      return await requestAndSaveToken(user.uid);
+  };
+
+  const markThemePromptAsSeen = async () => { 
+      if(!user) return;
+      await updateUserProfile(user.uid, { hasSeenThemePrompt: true });
+      setUser(prev => prev ? ({ ...prev, hasSeenThemePrompt: true }) : null);
+  };
+  const markFriendsPromptAsSeen = async () => { 
+      if(!user) return;
+      await updateUserProfile(user.uid, { hasSeenFriendsPrompt: true });
+      setUser(prev => prev ? ({ ...prev, hasSeenFriendsPrompt: true }) : null);
+  };
+  const markNotificationPromptAsSeen = async () => { 
+      if(!user) return;
+      await updateUserProfile(user.uid, { hasSeenNotificationPrompt: true });
+      setUser(prev => prev ? ({ ...prev, hasSeenNotificationPrompt: true }) : null);
+  };
   
     const sendFriendRequest = async (toUid: string) => {
         if (!user) return false;
