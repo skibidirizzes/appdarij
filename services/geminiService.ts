@@ -22,15 +22,13 @@ let ai: GoogleGenAI | null = null;
 const AI_DISABLED_ERROR = "AI services are disabled due to an initialization error.";
 
 try {
-  // FIX: Switched from import.meta.env to process.env.API_KEY to align with coding guidelines and fix TypeScript error.
-  // The API key is assumed to be pre-configured and accessible in the execution context.
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("API_KEY environment variable not set.");
-  }
+  // API key is hardcoded for browser compatibility.
+  // WARNING: In a production application, exposing API keys on the client-side is a security risk.
+  // It is recommended to use a backend proxy to handle API requests securely.
+  const apiKey = "AIzaSyC3OnzrtxClIhQLqJB0hHnfk87lkcaxsn4"; 
   ai = new GoogleGenAI({ apiKey: apiKey });
 } catch (e: any) {
-  aiInitializationError = `Gemini AI initialization failed: ${e.message}.`;
+  aiInitializationError = `Gemini AI initialization failed: ${e.message}. If you see this, make sure you have replaced the placeholder API key.`;
   console.error("AI Initialization Failed:", aiInitializationError);
   ai = null;
 }
