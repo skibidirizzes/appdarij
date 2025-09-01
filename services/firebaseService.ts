@@ -57,7 +57,6 @@ export const signOut = (): Promise<void> => {
     return auth.signOut();
 };
 
-// FIX: Export the sendPasswordResetEmail function
 export const sendPasswordResetEmail = (email: string): Promise<void> => {
     return auth.sendPasswordResetEmail(email);
 };
@@ -72,6 +71,13 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
         return doc.data() as UserProfile;
     }
     return null;
+};
+
+export const getPublicUserProfiles = async (uids: string[]): Promise<UserProfile[]> => {
+    if (uids.length === 0) return [];
+    // Firestore 'in' query is limited to 10 elements. For a real app with more friends, this would need batching.
+    const snapshot = await usersCollection.where(firebase.firestore.FieldPath.documentId(), 'in', uids.slice(0, 10)).get();
+    return snapshot.docs.map(doc => (doc.data() as UserProfile));
 };
 
 export const createUserProfile = (uid: string, userProfile: UserProfile): Promise<void> => {

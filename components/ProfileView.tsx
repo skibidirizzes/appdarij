@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { UserProfile, CommunityPost, View, Sticker } from '../types.ts';
 import { UserContext } from '../context/UserContext.tsx';
-import { getUserProfile, getCommunityPostsByUser } from '../services/firebaseService.ts';
+import { getPublicUserProfiles, getCommunityPostsByUser } from '../services/firebaseService.ts';
 import Card from './common/Card.tsx';
 import Button from './common/Button.tsx';
 import { SpinnerIcon, TrophyIcon, UserIcon, ClockIcon } from './icons/index.ts';
@@ -72,10 +72,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, onNavigate }) => {
             setIsLoading(true);
             setError(null);
             try {
-                const [profileData, postData] = await Promise.all([
-                    getUserProfile(userId),
+                const [profileDataArray, postData] = await Promise.all([
+                    getPublicUserProfiles([userId]),
                     getCommunityPostsByUser(userId)
                 ]);
+
+                const profileData = profileDataArray[0];
 
                 if (!profileData) {
                     throw new Error("Could not find user profile.");

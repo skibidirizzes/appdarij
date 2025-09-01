@@ -11,7 +11,7 @@ const getChildData = async (uid: string): Promise<Partial<UserProfile> | null> =
     // In a real app, this would be a backend call. Here we mock it.
     await new Promise(res => setTimeout(res, 500));
     // This now succeeds for a specific, testable code
-    if (uid === 'CHILD123') {
+    if (uid === 'CHILD123' || uid === 'LUJPA2') {
          return {
             uid: 'mock_child_1',
             displayName: 'Jamal Jr.',
@@ -163,12 +163,12 @@ const ParentalControlsView: React.FC = () => {
                             type="text"
                             value={linkCode}
                             onChange={e => setLinkCode(e.target.value.toUpperCase())}
-                            placeholder="Enter Code (e.g. CHILD123)"
-                            maxLength={10}
+                            placeholder="Enter 6-digit code"
+                            maxLength={6}
                             className="w-full p-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white tracking-widest text-center font-mono focus:ring-2 focus:ring-primary-400"
                         />
                         {error && <p className="text-red-400 text-sm text-center">{error}</p>}
-                        <Button type="submit" className="w-full justify-center" disabled={isLoading || linkCode.length < 3}>
+                        <Button type="submit" className="w-full justify-center" disabled={isLoading || linkCode.length < 6}>
                             {isLoading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : t('parental_controls_link_button')}
                         </Button>
                     </form>
