@@ -160,6 +160,7 @@ const MainAppLayout: React.FC = () => {
 const AppContent: React.FC = () => {
     const { user, isLoading } = useContext(UserContext);
     const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
 
     if (isLoading) {
         return (

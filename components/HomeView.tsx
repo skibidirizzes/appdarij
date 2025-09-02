@@ -4,7 +4,7 @@ import Card from '../common/Card.tsx';
 import Button from '../common/Button.tsx';
 import { LearningTopic, View, WordInfo, Quiz, WordHistoryEntry, LeaderboardEntry, ScriptMode, Story } from '../../types.ts';
 import { LEARNING_TOPICS, SPACED_REPETITION_THRESHOLD, LEVELS, STORY_LEVELS } from '../../constants.ts';
-import { LockIcon, VocabularyIcon, GrammarIcon, PhrasesIcon, LightbulbIcon, NumberIcon, SwordIcon, TrophyIcon, WordOfTheDayIcon, CheckCircleIcon, BookOpenIcon, SparklesIcon } from '../icons/index.ts';
+import { LockIcon, VocabularyIcon, GrammarIcon, PhrasesIcon, LightbulbIcon, NumberIcon, SwordIcon, TrophyIcon, WordOfTheDayIcon, CheckCircleIcon, BookOpenIcon, SparklesIcon } from './icons/index.ts';
 import { useTranslations } from '../../hooks/useTranslations.ts';
 import { getWordOfTheDay, generateQuiz } from '../../services/geminiService.ts';
 import { getLeaderboard } from '../../services/firebaseService.ts';

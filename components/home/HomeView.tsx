@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { UserContext } from '../../context/UserContext.tsx';
 import Card from '../common/Card.tsx';
 import Button from '../common/Button.tsx';
-import { LearningTopic, Quiz, WordInfo, WordHistoryEntry, LeaderboardEntry, ScriptMode, Story } from '../../types.ts';
+import { LearningTopic, View, WordInfo, Quiz, WordHistoryEntry, LeaderboardEntry, ScriptMode, Story } from '../../types.ts';
 import { LEARNING_TOPICS, SPACED_REPETITION_THRESHOLD, LEVELS, STORY_LEVELS } from '../../constants.ts';
 import { LockIcon, VocabularyIcon, GrammarIcon, PhrasesIcon, LightbulbIcon, NumberIcon, SwordIcon, TrophyIcon, WordOfTheDayIcon, CheckCircleIcon, BookOpenIcon, SparklesIcon } from '../icons/index.ts';
 import { useTranslations } from '../../hooks/useTranslations.ts';
@@ -45,7 +45,6 @@ const DarijaText: React.FC<{ text: { latin: string; arabic?: string; }; scriptMo
   );
 };
 
-// FIX: Removed navigation props, will use state and router hooks
 interface HomeViewProps {}
 
 const TopicIcons: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
@@ -239,6 +238,14 @@ const HomeView: React.FC<HomeViewProps> = () => {
   const [isLoadingWord, setIsLoadingWord] = useState(true);
   const { t, language } = useTranslations();
 
+  const handleStartQuiz = (topic: LearningTopic, level: number, wordToReview?: WordInfo, subCategory?: string) => {
+    navigate('/quiz', { state: { topic, level, wordToReview, subCategory } });
+  };
+  
+  const onStartCustomQuiz = (quiz: Quiz, topic: LearningTopic) => {
+    navigate('/quiz', { state: { customQuiz: quiz, topic } });
+  };
+
   useEffect(() => {
     const fetchWord = async () => {
         setIsLoadingWord(true);
@@ -267,6 +274,7 @@ const HomeView: React.FC<HomeViewProps> = () => {
         if (!user) return [];
         const now = Date.now();
         const seenWords = new Set<string>();
+        // Iterate backwards to get most recent entries first
         return user.wordHistory
             .slice()
             .reverse()
@@ -293,14 +301,6 @@ const HomeView: React.FC<HomeViewProps> = () => {
         return isUnlocked ? story : null;
     }, [user]);
 
-    const handleStartQuiz = (topic: LearningTopic, level: number, wordToReview?: WordInfo, subCategory?: string) => {
-        navigate('/quiz', { state: { topic, level, wordToReview, subCategory } });
-    };
-    
-    const onStartCustomQuiz = (quiz: Quiz, topic: LearningTopic) => {
-        navigate('/quiz', { state: { customQuiz: quiz, topic } });
-    };
-
     const handleStartSpacedRepetitionQuiz = async (words: WordHistoryEntry[]) => {
         const quiz = await generateQuiz('Spaced Repetition', 1, undefined, words);
         onStartCustomQuiz(quiz, 'Spaced Repetition');
@@ -308,6 +308,7 @@ const HomeView: React.FC<HomeViewProps> = () => {
 
     const suggestion = useMemo(() => {
         if (!user) return null;
+        // Priority 0: AI Smart Suggestion
         if (mistakeAnalysis) {
             return {
                 text: mistakeAnalysis,
@@ -317,6 +318,7 @@ const HomeView: React.FC<HomeViewProps> = () => {
             };
         }
         
+        // Priority 1: Spaced Repetition
         if (wordsForRepetition.length >= 5) {
             return {
                 text: t('home_suggestion_spaced_repetition'),
@@ -325,6 +327,7 @@ const HomeView: React.FC<HomeViewProps> = () => {
             };
         }
         
+        // Priority 2: Continue weakest topic
         let minLevel = 999;
         let minTopicInfo: (typeof LEARNING_TOPICS)[0] | null = null;
         
@@ -348,6 +351,7 @@ const HomeView: React.FC<HomeViewProps> = () => {
             };
         }
 
+        // Fallback: Start a new topic
         const topicsNotStarted = LEARNING_TOPICS.filter(topicInfo => !user.progress[topicInfo.name]);
         if (topicsNotStarted.length > 0) {
             const topicToStart = topicsNotStarted[0];
@@ -358,6 +362,7 @@ const HomeView: React.FC<HomeViewProps> = () => {
             };
         }
 
+        // Final fallback
         return {
             text: t('home_suggestion_all_done'),
             buttonText: t('home_suggestion_all_done_button'),
@@ -367,7 +372,7 @@ const HomeView: React.FC<HomeViewProps> = () => {
     }, [user, t, isLevelUnlocked, wordsForRepetition, mistakeAnalysis, navigate]);
     
     if (!user || !suggestion) {
-        return null;
+        return null; // Or a loading spinner
     }
     
     const subCat = selectedTopic === 'Vocabulary' && selectedVocabSubCategory 
@@ -385,7 +390,9 @@ const HomeView: React.FC<HomeViewProps> = () => {
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
+                {/* Main Content Area */}
                 <div className="lg:col-span-2 space-y-6">
+                    {/* Suggestion Card */}
                     <div className="relative">
                         <Card className="bg-primary-900/50 border-primary-500/50 animate-glow-primary">
                             <div className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -419,6 +426,7 @@ const HomeView: React.FC<HomeViewProps> = () => {
                          </Card>
                     )}
 
+                    {/* Learning Path */}
                     <div className="space-y-4">
                         <h2 className="text-2xl font-bold text-white">{t('home_topics_title')}</h2>
                          <div className="flex flex-wrap gap-2">
@@ -479,6 +487,7 @@ const HomeView: React.FC<HomeViewProps> = () => {
                     </div>
                 </div>
 
+                {/* Sidebar Column */}
                 <div className="lg:col-span-1 space-y-6">
                     <img 
                       src="https://cdn.dribbble.com/users/1092276/screenshots/6253995/camel_character_animation_dribbble.gif"
@@ -495,6 +504,7 @@ const HomeView: React.FC<HomeViewProps> = () => {
                      </Card>
                      <HomeSidebarTabs />
                      <MiniLeaderboard />
+                    {/* Word of the Day */}
                     <Card>
                          <div className="p-6">
                             <div className="flex justify-between items-center mb-4">

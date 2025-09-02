@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useContext } from 'react';
+// FIX: Import useLocation to get story data from router state.
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Story } from '../types.ts';
 import { useTranslations } from '../hooks/useTranslations.ts';
 import { getPronunciationFeedback } from '../services/geminiService.ts';
@@ -15,13 +17,16 @@ declare global {
 
 type RecognitionState = 'idle' | 'recognizing' | 'recognized' | 'denied' | 'unsupported';
 
-interface StoryModeViewProps {
-    story: Story;
-}
+// FIX: Remove props and use hooks instead.
+interface StoryModeViewProps {}
 
-const StoryModeView: React.FC<StoryModeViewProps> = ({ story }) => {
+const StoryModeView: React.FC<StoryModeViewProps> = () => {
     const { t } = useTranslations();
     const { addInfoToast } = useContext(UserContext);
+    const location = useLocation();
+    const navigate = useNavigate();
+    const story = location.state?.story as Story;
+
     const [currentParagraph, setCurrentParagraph] = useState(0);
     const [feedback, setFeedback] = useState('');
     const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
@@ -102,6 +107,16 @@ const StoryModeView: React.FC<StoryModeViewProps> = ({ story }) => {
             setResultState('finished');
         }
     };
+    
+    if (!story) {
+        return (
+            <Card className="p-8 text-center">
+                <h3 className="text-xl font-bold text-white">No Story Selected</h3>
+                <p className="text-slate-300 mt-2">Please go back to the dashboard to select a story.</p>
+                <Button onClick={() => navigate('/dashboard')} className="mt-4">Back to Dashboard</Button>
+            </Card>
+        );
+    }
     
     const paragraph = story.paragraphs[currentParagraph];
 

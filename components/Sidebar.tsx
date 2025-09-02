@@ -21,8 +21,10 @@ import {
     SwordIcon,
     SparklesIcon,
     RootIcon,
-    DumbbellIcon
+    DumbbellIcon,
+    SendIcon
 } from './icons/index.ts';
+import { ADMIN_UIDS } from '../constants.ts';
 
 interface SidebarProps {
     isCollapsed: boolean;
@@ -57,12 +59,17 @@ const NavItem: React.FC<{
 );
 
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
-    const { user } = useContext(UserContext);
+    const { user, friends } = useContext(UserContext);
     const { t } = useTranslations();
     const navigate = useNavigate();
     const location = useLocation();
     
-    const isParentalLinkActive = user?.childAccountIds?.length > 0 || !!user?.parentAccountId;
+    if (!user) return null;
+
+    const isParentalLinkActive = user.childAccountIds?.length > 0 || !!user.parentAccountId;
+    const onlineFriendsCount = friends.filter(f => (Date.now() - f.lastOnline) < 15 * 60 * 1000).length;
+    const duelLabel = `Duels ${onlineFriendsCount > 0 ? `(${onlineFriendsCount} online)` : ''}`;
+    const isAdmin = ADMIN_UIDS.includes(user.uid);
     
     const allNavItems = [
         // Learn
@@ -75,17 +82,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
         // Community & Social
         { path: '/friends', label: t('nav_friends'), icon: UserGroupIcon },
         { path: '/leaderboard', label: t('nav_leaderboard'), icon: LeaderboardIcon },
-        { path: '/duel-setup', label: "Duels", icon: SwordIcon },
+        { path: '/duel-setup', label: duelLabel, icon: SwordIcon },
         { path: '/achievements', label: t('nav_achievements'), icon: TrophyIcon },
         ...(isParentalLinkActive ? [{ path: '/parental-controls', label: t('nav_parental_controls'), icon: ShieldCheckIcon, notification: true }] : []),
         { isSeparator: true },
         // Tools
         { path: '/dictionary', label: t('nav_dictionary'), icon: LibraryIcon },
         { path: '/triliteral-root', label: t('nav_triliteral_root'), icon: RootIcon },
+        ...(isAdmin ? [{ path: '/send-notification', label: "Send Notification", icon: SendIcon }] : []),
     ];
 
-
-    if (!user) return null;
 
     return (
         <aside className={`fixed top-0 left-0 h-full bg-[var(--color-sidebar-bg)] backdrop-blur-lg border-r border-[var(--color-border-card)] flex flex-col z-20 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-24 p-3' : 'w-64 p-4'}`}>

@@ -1,13 +1,14 @@
 import React, { useContext, useMemo } from 'react';
+// FIX: Import useNavigate to handle navigation internally.
+import { useNavigate } from 'react-router-dom';
 import { UserContext } from '../context/UserContext.tsx';
 import { useTranslations } from '../hooks/useTranslations.ts';
 import Card from './common/Card.tsx';
-import { DumbbellIcon } from './icons/index.ts';
+import { DumbbellIcon } from '../icons/index.ts';
 import { Quiz, ScriptMode } from '../types.ts';
 
-interface MasteryViewProps {
-    onStartCustomQuiz: (quiz: Quiz, topic: string) => void;
-}
+// FIX: Remove props and use hooks instead.
+interface MasteryViewProps {}
 
 const WordMasteryItem: React.FC<{ word: { latin: string; arabic: string; accuracy: number; }; scriptMode: ScriptMode }> = ({ word, scriptMode }) => {
     const isMastered = word.accuracy >= 100;
@@ -34,9 +35,14 @@ const WordMasteryItem: React.FC<{ word: { latin: string; arabic: string; accurac
 };
 
 
-const MasteryView: React.FC<MasteryViewProps> = ({ onStartCustomQuiz }) => {
+const MasteryView: React.FC<MasteryViewProps> = () => {
     const { user } = useContext(UserContext);
     const { t } = useTranslations();
+    const navigate = useNavigate();
+
+    const onStartCustomQuiz = (quiz: Quiz, topic: string) => {
+        navigate('/quiz', { state: { customQuiz: quiz, topic } });
+    };
 
     const allWords = useMemo(() => {
         const stats: { [key: string]: { latin: string; arabic: string; seen: number; correct: number } } = {};

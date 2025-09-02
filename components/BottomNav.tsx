@@ -5,9 +5,10 @@ import {
     BookOpenIcon, TrophyIcon, GearIcon, ClipboardListIcon, LibraryIcon, 
     ChatBubbleIcon, LeaderboardIcon, UserGroupIcon, MapPinIcon, 
     SoundWaveIcon, CommunityIcon, FlaskIcon, ShieldCheckIcon, 
-    SwordIcon, RootIcon, DumbbellIcon 
+    SwordIcon, RootIcon, DumbbellIcon, SendIcon
 } from './icons/index.ts';
 import { UserContext } from '../context/UserContext.tsx';
+import { ADMIN_UIDS } from '../constants.ts';
 
 interface NavItemProps {
     icon: React.FC<React.SVGProps<SVGSVGElement>>;
@@ -15,9 +16,10 @@ interface NavItemProps {
     isActive: boolean;
     onClick: () => void;
     hasNotification?: boolean;
+    isOnlineIndicator?: boolean;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, isActive, onClick, hasNotification }) => (
+const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, isActive, onClick, hasNotification, isOnlineIndicator }) => (
     <button
         onClick={onClick}
         className={`relative flex flex-col items-center justify-center flex-shrink-0 min-w-[80px] h-full px-2 pt-2 pb-1 transition-colors duration-200 ${
@@ -28,7 +30,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, isActive, onClick,
         <div className={`relative w-8 h-8 flex items-center justify-center mb-1 rounded-full ${isActive ? 'bg-primary-500/20' : ''}`}>
             <Icon className="w-6 h-6" />
             {hasNotification && (
-                <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-slate-800" />
+                <span className={`absolute top-0 right-0 block h-2.5 w-2.5 rounded-full ${isOnlineIndicator ? 'bg-emerald-500' : 'bg-red-500'} ring-2 ring-slate-800`} />
             )}
         </div>
         <span className={`text-xs mt-0.5 whitespace-nowrap ${isActive ? 'font-bold' : ''}`}>{label}</span>
@@ -37,11 +39,15 @@ const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, isActive, onClick,
 
 const BottomNav: React.FC = () => {
     const { t } = useTranslations();
-    const { user } = useContext(UserContext);
+    const { user, friends } = useContext(UserContext);
     const navigate = useNavigate();
     const location = useLocation();
     
-    const isParentalLinkActive = user?.childAccountIds?.length > 0 || !!user?.parentAccountId;
+    if (!user) return null;
+
+    const isParentalLinkActive = user.childAccountIds?.length > 0 || !!user.parentAccountId;
+    const onlineFriendsCount = friends.filter(f => (Date.now() - f.lastOnline) < 15 * 60 * 1000).length;
+    const isAdmin = ADMIN_UIDS.includes(user.uid);
     
     const navItems = [
         { path: '/dashboard', label: t('nav_dashboard'), icon: BookOpenIcon },
@@ -51,11 +57,12 @@ const BottomNav: React.FC = () => {
         { path: '/phoneme-practice', label: t('nav_phoneme_practice'), icon: SoundWaveIcon },
         { path: '/friends', label: t('nav_friends'), icon: UserGroupIcon },
         { path: '/leaderboard', label: t('nav_leaderboard'), icon: LeaderboardIcon },
-        { path: '/duel-setup', label: "Duels", icon: SwordIcon },
+        { path: '/duel-setup', label: "Duels", icon: SwordIcon, notification: onlineFriendsCount > 0, online: true },
         { path: '/achievements', label: t('nav_achievements'), icon: TrophyIcon },
         ...(isParentalLinkActive ? [{ path: '/parental-controls', label: t('nav_parental_controls'), icon: ShieldCheckIcon, notification: true }] : []),
         { path: '/dictionary', label: t('nav_dictionary'), icon: LibraryIcon },
         { path: '/triliteral-root', label: t('nav_triliteral_root'), icon: RootIcon },
+        ...(isAdmin ? [{ path: '/send-notification', label: "Notify", icon: SendIcon }] : []),
         { path: '/settings', label: t('nav_settings'), icon: GearIcon },
     ];
 
@@ -70,6 +77,7 @@ const BottomNav: React.FC = () => {
                         isActive={location.pathname === item.path}
                         onClick={() => navigate(item.path)}
                         hasNotification={'notification' in item && item.notification}
+                        isOnlineIndicator={'online' in item && item.online}
                     />
                 ))}
             </div>

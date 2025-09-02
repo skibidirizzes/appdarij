@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useContext } from 'react';
+// FIX: Import router hooks to manage state and navigation internally.
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Quiz, LearningTopic, Friend } from '../types.ts';
 import { generateQuiz } from '../services/geminiService.ts';
 import { UserContext } from '../context/UserContext.tsx';
 import QuizView from './QuizView.tsx'; // Re-using the core quiz component
 import Card from './common/Card.tsx';
 import { SwordIcon, SpinnerIcon } from './icons/index.ts';
+// FIX: Import the Button component to resolve the 'Cannot find name' error.
+import Button from './common/Button.tsx';
 
-interface DuelQuizViewProps {
-    topic: LearningTopic;
-    opponent: Friend;
-    onQuizFinish: () => void;
-}
+// FIX: Remove props and use hooks instead.
+interface DuelQuizViewProps {}
 
 const ProgressBar: React.FC<{ progress: number, name: string, photoURL: string, isOpponent?: boolean }> = ({ progress, name, photoURL, isOpponent }) => (
     <div>
@@ -28,16 +29,23 @@ const ProgressBar: React.FC<{ progress: number, name: string, photoURL: string, 
 );
 
 
-const DuelQuizView: React.FC<DuelQuizViewProps> = ({ topic, opponent, onQuizFinish }) => {
+const DuelQuizView: React.FC<DuelQuizViewProps> = () => {
     const { user } = useContext(UserContext);
+    const location = useLocation();
+    const navigate = useNavigate();
+    const { topic, opponent } = location.state || {} as { topic: LearningTopic, opponent: Friend };
+
     const [customQuiz, setCustomQuiz] = useState<Quiz | null>(null);
     const [playerScore, setPlayerScore] = useState(0);
     const [opponentProgress, setOpponentProgress] = useState(0);
 
     const playerProgress = customQuiz ? (playerScore / customQuiz.length) * 100 : 0;
 
+    const onQuizFinish = () => navigate('/dashboard');
+
     // This effect runs once to generate the quiz for the duel
     useEffect(() => {
+        if (!topic) return;
         const createDuelQuiz = async () => {
             const quiz = await generateQuiz(topic, 10); // Duels have 10 questions
             setCustomQuiz(quiz);
@@ -70,6 +78,16 @@ const DuelQuizView: React.FC<DuelQuizViewProps> = ({ topic, opponent, onQuizFini
         setPlayerScore(correct);
     };
 
+    if (!topic || !opponent) {
+        return (
+            <Card className="p-8 text-center">
+                <h3 className="text-xl font-bold text-white">Duel not found</h3>
+                <p className="text-slate-300 mt-2">Please set up a new duel from the duel setup page.</p>
+                <Button onClick={() => navigate('/duel-setup')} className="mt-4">Back to Duel Setup</Button>
+            </Card>
+        );
+    }
+
     return (
         <div className="w-full space-y-6">
             <Card className="p-4">
@@ -89,9 +107,6 @@ const DuelQuizView: React.FC<DuelQuizViewProps> = ({ topic, opponent, onQuizFini
                     topic={topic}
                     onQuizFinish={onQuizFinish}
                     onProgressUpdate={handleProgressUpdate}
-                    level={0}
-                    prefetchedQuiz={null}
-                    onConsumePrefetched={() => {}}
                 />
             ) : (
                 <div className="flex flex-col items-center justify-center p-8">

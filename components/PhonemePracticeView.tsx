@@ -342,40 +342,47 @@ const PhonemePracticeView: React.FC = () => {
                 <p className="text-amber-400 p-2 bg-amber-900/30 rounded-md text-sm text-center mt-2">{speechError}</p>
             )}
 
-            {resultState && (
-                <div className={`w-full mt-6 rounded-lg transition-all duration-300 ease-in-out animate-fade-in-up
-                    ${resultState === 'correct' ? 'bg-[#1A4D43]' : 'bg-red-900/90 border border-red-700'}
-                `}>
+            {resultState === 'correct' && (
+                 <div className="w-full mt-6 rounded-lg bg-[#1A4D43] animate-fade-in-up">
                     <div className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
-                            <div className="flex-shrink-0">
-                                {resultState === 'correct' 
-                                    ? <CheckCircleIcon className="w-10 h-10 text-green-400" />
-                                    : <XCircleIcon className="w-10 h-10 text-red-300" />
-                                }
-                            </div>
+                            <CheckCircleIcon className="w-10 h-10 text-green-400 flex-shrink-0" />
                             <div className="text-center sm:text-left">
-                                <p className="font-bold text-white text-lg">
-                                    {resultState === 'correct' ? t('phoneme_practice_correct_header') : t('phoneme_practice_correct_solution')}
-                                </p>
-                                <p className="text-slate-200">
-                                    {resultState === 'correct' 
-                                        ? example?.definition 
-                                        : `${example?.latin} (${example?.arabic})`
-                                    }
-                                </p>
-                                <p className="text-sm text-slate-300 mt-1">{feedback}</p>
-                                <p className="text-sm text-slate-300 mt-2">{t('phoneme_practice_heard')} <span className="font-arabic text-lg font-semibold text-slate-200">{transcript}</span></p>
+                                <p className="font-bold text-white text-lg">{t('phoneme_practice_correct_header')}</p>
+                                <p className="text-slate-200">{example?.definition}</p>
                             </div>
                         </div>
-                        <div className="flex-shrink-0 w-full sm:w-auto">
-                           <Button onClick={handleContinue} className="w-full justify-center">
+                        <Button onClick={handleContinue} className="w-full sm:w-auto justify-center bg-emerald-600 hover:bg-emerald-700">
+                            {currentSetIndex === SET_LENGTH - 1 ? 'Finish Set' : t('phoneme_practice_continue_button')}
+                        </Button>
+                    </div>
+                </div>
+            )}
+            
+            {resultState === 'incorrect' && (
+                <div className="w-full mt-6 rounded-lg bg-red-900/50 border border-red-700 animate-fade-in-up">
+                    <div className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex items-start gap-4 flex-1">
+                            <XCircleIcon className="w-10 h-10 text-red-300 flex-shrink-0 mt-1" />
+                            <div className="flex-1 text-left">
+                                <p className="font-bold text-white text-lg">{t('phoneme_practice_correct_solution')}</p>
+                                <div className="flex items-center gap-2 mb-2">
+                                     <span className="text-slate-200 font-semibold">{example?.latin} ({example?.arabic})</span>
+                                     {example && <SpeakButton textToSpeak={example.arabic} />}
+                                </div>
+                                <p className="text-sm text-slate-300">{feedback}</p>
+                                <p className="text-sm text-slate-300 mt-2 border-t border-red-800 pt-2">{t('phoneme_practice_heard')} <span className="font-arabic text-lg font-semibold text-slate-200">{transcript}</span></p>
+                            </div>
+                        </div>
+                        <div className="flex-shrink-0 w-full md:w-auto">
+                            <Button onClick={handleContinue} className="w-full justify-center">
                                 {currentSetIndex === SET_LENGTH - 1 ? 'Finish Set' : t('phoneme_practice_continue_button')}
                             </Button>
                         </div>
                     </div>
                 </div>
             )}
+
              <button onClick={handleSkip} className="absolute bottom-0 right-0 flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
                 Skip Word <ChevronRightIcon className="w-5 h-5" />
             </button>

@@ -38,6 +38,7 @@ const FriendLeaderboard: React.FC = () => {
             score: user.score,
             photoURL: user.photoURL,
             rank: 0,
+            lastOnline: user.lastOnline,
         };
         const allPlayers = [currentUserAsFriend, ...friends];
         return allPlayers

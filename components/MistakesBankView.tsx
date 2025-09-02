@@ -1,4 +1,6 @@
 import React, { useState, useContext, useMemo, useEffect } from 'react';
+// FIX: Import useNavigate to handle navigation internally.
+import { useNavigate } from 'react-router-dom';
 import { UserContext } from '../context/UserContext.tsx';
 import { analyzeMistakes } from '../services/geminiService.ts';
 import Button from './common/Button.tsx';
@@ -8,14 +10,14 @@ import { Quiz, ScriptMode } from '../types.ts';
 import { QUIZ_LENGTH } from '../constants.ts';
 import { useTranslations } from '../hooks/useTranslations.ts';
 
-interface MistakesBankViewProps {
-    onStartCustomQuiz: (quiz: Quiz) => void;
-}
+// FIX: Remove props and use hooks instead.
+interface MistakesBankViewProps {}
 
-const MistakesBankView: React.FC<MistakesBankViewProps> = ({ onStartCustomQuiz }) => {
+const MistakesBankView: React.FC<MistakesBankViewProps> = () => {
     const { user, clearMistakes, addInfoToast } = useContext(UserContext);
     const { scriptMode } = user.settings;
     const { t } = useTranslations();
+    const navigate = useNavigate();
     const [analysis, setAnalysis] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -56,7 +58,8 @@ const MistakesBankView: React.FC<MistakesBankViewProps> = ({ onStartCustomQuiz }
         const shuffledMistakes = [...user.mistakes].sort(() => Math.random() - 0.5);
         const reviewQuiz = shuffledMistakes.slice(0, QUIZ_LENGTH).map(mistake => mistake.question);
         
-        onStartCustomQuiz(reviewQuiz);
+        // FIX: Use navigate to start the quiz.
+        navigate('/quiz', { state: { customQuiz: reviewQuiz, topic: 'Personalized Review' } });
     };
 
     return (

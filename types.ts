@@ -306,6 +306,7 @@ export interface LeaderboardEntry {
     score: number;
     rank: number;
     photoURL?: string;
+    lastOnline: number;
 }
 
 export interface Friend extends LeaderboardEntry {}
@@ -374,7 +375,7 @@ export interface UserContextType {
   updateUser: (payload: UpdateUserPayload) => void;
   submitQuizResults: (topic: LearningTopic, level: number | null, answers: UserAnswer[], quizQuestions: QuizQuestion[]) => void;
   updateSettings: (settings: Partial<UserSettings>) => void;
-  updateProfileDetails: (details: Partial<Pick<UserProfile, 'displayName' | 'photoURL' | 'hasCompletedOnboarding' | 'bio'>>) => void;
+  updateProfileDetails: (details: Partial<Pick<UserProfile, 'displayName' | 'photoURL' | 'hasCompletedOnboarding' | 'bio' | 'childAccountIds'>>) => void;
   resetAllData: () => Promise<void>;
   clearProgress: () => void;
   clearMistakes: () => void;

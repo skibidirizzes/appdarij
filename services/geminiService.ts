@@ -626,7 +626,7 @@ export async function getPhonemeExample(
   phoneme: string
 ): Promise<{ latin: string; arabic: string; definition: string }> {
   if (!ai) throw new Error(AI_DISABLED_ERROR);
-  const prompt = `Provide one common, simple Moroccan Darija word that contains the sound represented by the letter '${phoneme}'. CRITICAL: Your primary goal is to provide variety. You MUST give me a different word than you might have provided before for this same phoneme. Do NOT repeat common words like 'qahwa' for 'ق' or 'b7al' for 'ح'. Always find a new, interesting, yet simple example.`;
+  const prompt = `Provide one common, simple Moroccan Darija word that contains the sound represented by the letter '${phoneme}'. CRITICAL: Your primary goal is to provide VARIETY. You MUST give me a different word than you might have provided before for this same phoneme. Always find a new, interesting, yet simple example. Avoid extremely common words like 'qahwa' for 'ق' or 'b7al' for 'ح' unless you have no other choice. Be creative.`;
   return handleApiCall(prompt, phonemeExampleSchema);
 }
 

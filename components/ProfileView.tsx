@@ -79,11 +79,7 @@ const ProfileView: React.FC = () => {
                 setProfile(profileData);
                 setPosts(postData);
             } catch (err: any) {
-                 if (err.code === 'permission-denied') {
-                    setError("This user's profile is private.");
-                } else {
-                    setError(err.message || "Failed to load profile.");
-                }
+                setError(err.message || "Failed to load profile.");
             } finally {
                 setIsLoading(false);
             }

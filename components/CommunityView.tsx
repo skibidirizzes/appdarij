@@ -1,4 +1,6 @@
 import React, { useState, useContext, useEffect, useMemo } from 'react';
+// FIX: Import useNavigate to handle navigation internally.
+import { useNavigate } from 'react-router-dom';
 import { useTranslations } from '../hooks/useTranslations.ts';
 import { CommunityPost, View } from '../types.ts';
 import Card from './common/Card.tsx';
@@ -8,7 +10,7 @@ import { CommunityIcon, ArrowUpIcon, MessageSquareIcon, SpinnerIcon, PencilIcon 
 import { UserContext } from '../context/UserContext.tsx';
 import { createCommunityPost, getCommunityPosts } from '../services/firebaseService.ts';
 
-const PostCard: React.FC<{ post: CommunityPost, onNavigate: (view: { name: View; params?: any }) => void; }> = ({ post, onNavigate }) => {
+const PostCard: React.FC<{ post: CommunityPost, onNavigate: (path: string) => void; }> = ({ post, onNavigate }) => {
     const { t } = useTranslations();
     
     return (
@@ -22,7 +24,7 @@ const PostCard: React.FC<{ post: CommunityPost, onNavigate: (view: { name: View;
                     <img src={post.author.photoURL} alt={post.author.displayName} className="w-6 h-6 rounded-full" />
                     <button 
                         className="text-sm text-slate-400 hover:underline"
-                        onClick={() => onNavigate({ name: 'profile', params: { userId: post.author.uid }})}
+                        onClick={() => onNavigate(`/profile/${post.author.uid}`)}
                     >
                         Posted by {post.author.displayName}
                     </button>
@@ -168,12 +170,12 @@ const NewPostModal: React.FC<{
     );
 }
 
-interface CommunityViewProps {
-    onNavigate: (view: { name: View; params?: any }) => void;
-}
+// FIX: Remove props and use hooks instead.
+interface CommunityViewProps {}
 
-const CommunityView: React.FC<CommunityViewProps> = ({ onNavigate }) => {
+const CommunityView: React.FC<CommunityViewProps> = () => {
     const { t } = useTranslations();
+    const navigate = useNavigate();
     const [posts, setPosts] = useState<CommunityPost[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -252,7 +254,7 @@ const CommunityView: React.FC<CommunityViewProps> = ({ onNavigate }) => {
                  <div className="text-center p-8"><SpinnerIcon className="w-8 h-8 mx-auto animate-spin" /></div>
             ) : filteredPosts.length > 0 ? (
                 <div className="space-y-4">
-                    {filteredPosts.map(post => <PostCard key={post.id} post={post} onNavigate={onNavigate} />)}
+                    {filteredPosts.map(post => <PostCard key={post.id} post={post} onNavigate={navigate} />)}
                 </div>
             ) : (
                 <Card className="p-8 text-center card-lift-hover">

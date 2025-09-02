@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
+// FIX: Import router hooks to manage state and navigation internally.
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Quiz, LearningTopic, QuizCache, QuizQuestion, UserAnswer, MultipleChoiceQuestion, WritingQuestion, SpeakingQuestion, SentenceFormationQuestion, ScriptMode, WordInfo } from '../types.ts';
 import { generateQuiz, getMistakeExplanation } from '../services/geminiService.ts';
 import { UserContext } from '../context/UserContext.tsx';
@@ -24,13 +26,14 @@ declare global {
     }
 }
 
+// FIX: Make props optional to support being used as a route component.
 interface QuizViewProps {
-  onQuizFinish: () => void;
+  onQuizFinish?: () => void;
   topic?: LearningTopic;
   level?: number;
   subCategory?: string;
-  prefetchedQuiz: QuizCache | null;
-  onConsumePrefetched: () => void;
+  prefetchedQuiz?: QuizCache | null;
+  onConsumePrefetched?: () => void;
   customQuiz?: Quiz | null;
   wordToReview?: WordInfo;
   onProgressUpdate?: (answered: number, correct: number, total: number) => void;
@@ -56,7 +59,25 @@ const DarijaText: React.FC<{ text: { latin: string; arabic: string; }; scriptMod
 };
 
 
-const QuizView: React.FC<QuizViewProps> = ({ onQuizFinish, topic, level, subCategory, prefetchedQuiz, onConsumePrefetched, customQuiz, wordToReview, onProgressUpdate }) => {
+const QuizView: React.FC<QuizViewProps> = (props) => {
+  // FIX: Use router hooks for navigation and state.
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // FIX: Combine props with router state to be flexible.
+  const topic = props.topic ?? location.state?.topic;
+  const level = props.level ?? location.state?.level;
+  const subCategory = props.subCategory ?? location.state?.subCategory;
+  const customQuiz = props.customQuiz ?? location.state?.customQuiz;
+  const wordToReview = props.wordToReview ?? location.state?.wordToReview;
+  const onProgressUpdate = props.onProgressUpdate;
+  
+  const [prefetchedQuizState, setPrefetchedQuizState] = useState<QuizCache | null>(props.prefetchedQuiz ?? null);
+
+  const onQuizFinish = props.onQuizFinish ?? (() => navigate('/dashboard'));
+  const onConsumePrefetched = props.onConsumePrefetched ?? (() => setPrefetchedQuizState(null));
+  const prefetchedQuiz = prefetchedQuizState;
+
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [quizFlowState, setQuizFlowState] = useState<QuizFlowState>('loading');

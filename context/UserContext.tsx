@@ -9,7 +9,6 @@ import { triggerConfetti } from '../utils/confetti.ts';
 import { analyzeMistakes } from '../services/geminiService.ts';
 
 
-// FIX: Add missing followUser and unfollowUser to satisfy UserContextType
 export const UserContext = createContext<UserContextType>({
   user: null,
   isLoading: true,
@@ -170,7 +169,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(prev => prev ? ({ ...prev, settings: {...prev.settings, ...settings }}) : null);
   };
   
-  const updateProfileDetails = async (details: Partial<Pick<UserProfile, 'displayName' | 'photoURL' | 'hasCompletedOnboarding' | 'bio'>>) => {
+  const updateProfileDetails = async (details: Partial<Pick<UserProfile, 'displayName' | 'photoURL' | 'hasCompletedOnboarding' | 'bio' | 'childAccountIds'>>) => {
     if(!user) return;
     await updateUserProfile(user.uid, details);
     setUser(prev => prev ? ({...prev, ...details}) : null);
@@ -302,7 +301,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    // FIX: Add placeholder implementations for followUser and unfollowUser to satisfy the UserContextType interface.
     const followUser = async (targetUid: string): Promise<void> => {
       if (!user) return;
       console.log(`Following user ${targetUid}`);
@@ -319,7 +317,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
 
-  // FIX: Add followUser and unfollowUser to the context value.
   const contextValue = useMemo(() => ({
     user, isLoading, updateUser, submitQuizResults, updateSettings, updateProfileDetails,
     resetAllData, clearProgress, clearMistakes, logout, newlyUnlockedAchievements,

@@ -1,4 +1,6 @@
 import React, { useState, useContext, useMemo, useCallback, useEffect } from 'react';
+// FIX: Import useNavigate to handle navigation internally.
+import { useNavigate } from 'react-router-dom';
 import { UserContext } from '../context/UserContext.tsx';
 import { useTranslations } from '../hooks/useTranslations.ts';
 import Card from './common/Card.tsx';
@@ -9,9 +11,8 @@ import { WordInfo, Quiz, ScriptMode, WordHistoryEntry } from '../types.ts';
 import SpeakButton from './common/SpeakButton.tsx';
 import Skeleton from './common/Skeleton.tsx';
 
-interface DictionaryViewProps {
-    onStartCustomQuiz: (quiz: Quiz) => void;
-}
+// FIX: Remove props and use hooks instead.
+interface DictionaryViewProps {}
 
 type ViewMode = 'explorer' | 'wordbank';
 
@@ -30,15 +31,20 @@ const DarijaText: React.FC<{ text: { latin: string; arabic?: string; }; scriptMo
   );
 };
 
-const WordExplorer: React.FC<{ onStartCustomQuiz: (quiz: Quiz) => void }> = ({ onStartCustomQuiz }) => {
+const WordExplorer: React.FC = () => {
     const { t, language } = useTranslations();
     const { user: { settings }, addInfoToast } = useContext(UserContext);
+    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [activeWord, setActiveWord] = useState<WordInfo | null>(null);
     const [recommendedWords, setRecommendedWords] = useState<WordInfo[] | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingRecs, setIsLoadingRecs] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const onStartCustomQuiz = (quiz: Quiz) => {
+        navigate('/quiz', { state: { customQuiz: quiz, topic: 'Vocabulary' } });
+    };
 
     useEffect(() => {
         const loadRecommendations = async () => {
@@ -246,7 +252,7 @@ const WordBank: React.FC = () => {
 };
 
 
-const DictionaryView: React.FC<DictionaryViewProps> = ({ onStartCustomQuiz }) => {
+const DictionaryView: React.FC<DictionaryViewProps> = () => {
   const [mode, setMode] = useState<ViewMode>('explorer');
   const { t } = useTranslations();
 
@@ -276,7 +282,7 @@ const DictionaryView: React.FC<DictionaryViewProps> = ({ onStartCustomQuiz }) =>
         ))}
       </div>
 
-      {mode === 'explorer' && <WordExplorer onStartCustomQuiz={onStartCustomQuiz} />}
+      {mode === 'explorer' && <WordExplorer />}
       {mode === 'wordbank' && <WordBank />}
     </div>
   );
