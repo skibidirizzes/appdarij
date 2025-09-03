@@ -100,6 +100,10 @@ const ProfileView: React.FC = () => {
     const memberSince = formatDistanceToNow(new Date(profile.createdAt), { addSuffix: true });
     const lastOnline = formatDistanceToNow(new Date(profile.lastOnline), { addSuffix: true });
     
+    const tabContentTitle = activeTab === 'activity' 
+        ? `${profile.displayName}'s Activity`
+        : `${profile.displayName}'s Posts (${posts.length})`;
+
     return (
         <div className="max-w-4xl mx-auto space-y-6">
             <Card className="p-6">
@@ -152,10 +156,11 @@ const ProfileView: React.FC = () => {
                         <TrophyIcon className="w-5 h-5"/> Activity
                     </button>
                     <button onClick={() => setActiveTab('posts')} className={`tab-button w-1/2 font-semibold flex items-center justify-center gap-2 p-3 ${activeTab === 'posts' ? 'active' : 'text-slate-400 hover:text-white'}`}>
-                       <CommunityIcon className="w-5 h-5"/> Posts ({posts.length})
+                       <CommunityIcon className="w-5 h-5"/> Posts
                     </button>
                 </div>
                 <div className="p-4">
+                    <h3 className="text-lg font-bold text-white mb-4">{tabContentTitle}</h3>
                     {activeTab === 'activity' && (
                         <RecentActivity userProfile={profile} />
                     )}

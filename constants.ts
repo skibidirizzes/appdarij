@@ -17,6 +17,7 @@ export const QUIZ_LENGTH = 10;
 export const LEVELS = Array.from({ length: 50 }, (_, i) => i + 1);
 export const WRITING_SIMILARITY_THRESHOLD = 0.8;
 export const SPACED_REPETITION_THRESHOLD = 7 * 24 * 60 * 60 * 1000; // 7 days
+// IMPORTANT: To use admin features, replace this with your actual Firebase UID.
 export const ADMIN_UIDS = ['REPLACE_WITH_YOUR_ADMIN_UID'];
 
 export const LEARNING_TOPICS: { name: LearningTopic; nameKey: TranslationKey; descriptionKey: TranslationKey; key: 'vocabulary' | 'grammar' | 'phrases' | 'numbers' }[] = [

@@ -3,7 +3,8 @@ import { UserContext } from '../context/UserContext.tsx';
 import { useTranslations } from '../hooks/useTranslations.ts';
 import Card from './common/Card.tsx';
 import Button from './common/Button.tsx';
-import { ShieldCheckIcon, SpinnerIcon, CheckCircleIcon, TrophyIcon, XCircleIcon, RefreshCwIcon } from './icons/index.ts';
+import Modal from './common/Modal.tsx';
+import { ShieldCheckIcon, SpinnerIcon, CheckCircleIcon, TrophyIcon, XCircleIcon, RefreshCwIcon, EyeIcon, EyeOffIcon } from './icons/index.ts';
 import { UserProfile, Mistake } from '../types.ts';
 import { getUserProfile } from '../services/firebaseService.ts';
 
@@ -105,13 +106,68 @@ const ChildsLinkedView: React.FC<{ parentProfile: UserProfile }> = ({ parentProf
     );
 };
 
+const LinkConfirmationModal: React.FC<{
+    childToConfirm: Partial<UserProfile>;
+    onConfirm: () => void;
+    onCancel: () => void;
+}> = ({ childToConfirm, onConfirm, onCancel }) => {
+    const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [isConfirming, setIsConfirming] = useState(false);
+
+    const handleConfirm = () => {
+        setIsConfirming(true);
+        // Mock confirmation delay
+        setTimeout(() => {
+            onConfirm();
+            setIsConfirming(false);
+        }, 1000);
+    };
+
+    return (
+        <Modal isOpen={true} onClose={onCancel} title="Confirm Account Link">
+            <div className="p-6 text-center">
+                <p className="text-slate-300 mb-4">You are about to link with this account:</p>
+                <div className="flex items-center gap-4 p-3 bg-slate-700/50 rounded-lg mb-4">
+                    <img src={childToConfirm.photoURL} alt={childToConfirm.displayName} className="w-12 h-12 rounded-full" />
+                    <div className="text-left">
+                        <p className="font-bold text-white">{childToConfirm.displayName}</p>
+                        <p className="text-sm text-slate-400">{childToConfirm.uid}</p>
+                    </div>
+                </div>
+                <p className="text-slate-400 text-sm mb-3">To protect this account, please enter <span className="font-semibold text-white">{childToConfirm.displayName}'s</span> password to confirm the link.</p>
+                <div className="relative">
+                    <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter account password"
+                        className="w-full p-2 bg-slate-700 border-2 border-slate-600 rounded-lg text-white pr-10"
+                    />
+                    <button onClick={() => setShowPassword(s => !s)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400">
+                        {showPassword ? <EyeOffIcon className="w-5 h-5"/> : <EyeIcon className="w-5 h-5"/>}
+                    </button>
+                </div>
+                <div className="flex gap-4 mt-6">
+                    <Button onClick={onCancel} className="w-full bg-slate-600 hover:bg-slate-500">Cancel</Button>
+                    <Button onClick={handleConfirm} className="w-full" disabled={isConfirming || password.length < 4}>
+                        {isConfirming ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : "Confirm & Link"}
+                    </Button>
+                </div>
+            </div>
+        </Modal>
+    );
+};
+
+
 const ParentalControlsView: React.FC = () => {
     const { user, addInfoToast, updateProfileDetails } = useContext(UserContext);
     const { t } = useTranslations();
     const [isLoading, setIsLoading] = useState(false);
     const [linkCode, setLinkCode] = useState('');
     const [error, setError] = useState('');
-
+    
+    const [childToConfirm, setChildToConfirm] = useState<Partial<UserProfile> | null>(null);
     const [childData, setChildData] = useState<Partial<UserProfile> | null>(null);
     const [parentProfile, setParentProfile] = useState<UserProfile | null>(null);
     const [linkingCode, setLinkingCode] = useState(() => user.uid.slice(-6).toUpperCase());
@@ -134,23 +190,28 @@ const ParentalControlsView: React.FC = () => {
     }, [linkedChildId, user.parentAccountId]);
 
 
-    const handleLinkAccount = async (e: React.FormEvent) => {
+    const handleFindAccount = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setError('');
         const data = await getChildData(linkCode);
         if(data) {
-            // Mock update to user context
-            user.childAccountIds = [data.uid];
-            updateProfileDetails({ childAccountIds: [data.uid] });
-            setChildData(data);
-            addInfoToast({ type: 'success', message: `Successfully linked with ${data.displayName}!`});
+            setChildToConfirm(data);
         } else {
             setError("Invalid code. Please check and try again.");
         }
         setIsLoading(false);
     }
     
+    const handleConfirmLink = () => {
+        if (!childToConfirm) return;
+        // Mock update to user context
+        updateProfileDetails({ childAccountIds: [childToConfirm.uid] });
+        setChildData(childToConfirm);
+        addInfoToast({ type: 'success', message: `Successfully linked with ${childToConfirm.displayName}!`});
+        setChildToConfirm(null);
+    };
+
     const handleCopyCode = () => {
         navigator.clipboard.writeText(linkingCode).then(() => {
             addInfoToast({type: 'success', message: 'Code copied to clipboard!'});
@@ -165,7 +226,6 @@ const ParentalControlsView: React.FC = () => {
 
     const handleDisconnect = () => {
         // Mock update
-        user.childAccountIds = [];
         updateProfileDetails({ childAccountIds: [] });
         setChildData(null);
         setLinkCode('');
@@ -175,6 +235,14 @@ const ParentalControlsView: React.FC = () => {
     
     if (isLoading) {
         return <div className="flex justify-center p-8"><SpinnerIcon className="w-10 h-10 animate-spin" /></div>
+    }
+    
+    if(childToConfirm) {
+        return <LinkConfirmationModal 
+                    childToConfirm={childToConfirm} 
+                    onConfirm={handleConfirmLink} 
+                    onCancel={() => setChildToConfirm(null)} 
+                />
     }
 
     if(childData) {
@@ -198,7 +266,7 @@ const ParentalControlsView: React.FC = () => {
                 <Card className="p-6">
                     <h3 className="text-xl font-bold text-white">{t('parental_controls_no_child_title')}</h3>
                     <p className="text-slate-400 text-sm mt-1 mb-4">{t('parental_controls_parent_instructions')}</p>
-                    <form onSubmit={handleLinkAccount} className="space-y-3">
+                    <form onSubmit={handleFindAccount} className="space-y-3">
                         <input 
                             type="text"
                             value={linkCode}

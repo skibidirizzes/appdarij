@@ -49,7 +49,4 @@ export * from './EyeIcon.tsx';
 export * from './EyeOffIcon.tsx';
 export * from './ShieldCheckIcon.tsx';
 export * from './UserIcon.tsx';
-export * from './MailIcon.tsx';
-export * from './PhoneIcon.tsx';
 export * from './RefreshCwIcon.tsx';
-export * from './SendIcon.tsx';

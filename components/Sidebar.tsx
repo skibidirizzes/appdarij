@@ -25,6 +25,7 @@ import {
     SendIcon
 } from './icons/index.ts';
 import { ADMIN_UIDS } from '../constants.ts';
+import Tooltip from './common/Tooltip.tsx';
 
 interface SidebarProps {
     isCollapsed: boolean;
@@ -68,26 +69,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
     if (!user) return null;
 
     const isParentalLinkActive = user.childAccountIds?.length > 0 || !!user.parentAccountId;
-    const onlineFriendsCount = friends.filter(f => (Date.now() - f.lastOnline) < 15 * 60 * 1000).length;
-    const duelLabel = `Duels ${onlineFriendsCount > 0 ? `(${onlineFriendsCount} online)` : ''}`;
+    const onlineFriends = friends.filter(f => (Date.now() - f.lastOnline) < 15 * 60 * 1000);
+    const onlineFriendsCount = onlineFriends.length;
+    const duelLabel = `Duels ${onlineFriendsCount > 0 && !isCollapsed ? `(${onlineFriendsCount})` : ''}`;
     const isAdmin = ADMIN_UIDS.includes(user.uid);
     
-    const allNavItems = [
-        // Learn
+    const navItems = [
         { path: '/dashboard', label: t('nav_dashboard'), icon: BookOpenIcon },
         { path: '/mastery', label: "Mastery", icon: DumbbellIcon },
         { path: '/mistakes-bank', label: "Mistakes Bank", icon: ClipboardListIcon },
         { path: '/conversation', label: t('nav_conversation'), icon: ChatBubbleIcon },
         { path: '/phoneme-practice', label: t('nav_phoneme_practice'), icon: SoundWaveIcon },
-        { isSeparator: true },
-        // Community & Social
+    ];
+    
+    const socialItems = [
         { path: '/friends', label: t('nav_friends'), icon: UserGroupIcon },
         { path: '/leaderboard', label: t('nav_leaderboard'), icon: LeaderboardIcon },
-        { path: '/duel-setup', label: duelLabel, icon: SwordIcon, notification: onlineFriendsCount > 0, online: true },
         { path: '/achievements', label: t('nav_achievements'), icon: TrophyIcon },
         ...(isParentalLinkActive ? [{ path: '/parental-controls', label: t('nav_parental_controls'), icon: ShieldCheckIcon, notification: true }] : []),
-        { isSeparator: true },
-        // Tools
+    ];
+
+    const toolItems = [
         { path: '/dictionary', label: t('nav_dictionary'), icon: LibraryIcon },
         { path: '/triliteral-root', label: t('nav_triliteral_root'), icon: RootIcon },
         ...(isAdmin ? [{ path: '/send-notification', label: "Send Notification", icon: SendIcon }] : []),
@@ -106,26 +108,61 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
             </div>
 
             <nav className="flex-grow space-y-1 overflow-y-auto -mr-2 pr-2">
-                {allNavItems.map((item, index) => {
-                    if ('isSeparator' in item && item.isSeparator) {
-                        return <hr key={`sep-${index}`} className={`my-2 border-slate-700 ${isCollapsed ? 'mx-2' : ''}`} />;
-                    }
-                    if ('path' in item) {
-                        return (
-                            <NavItem
-                                key={item.path}
-                                label={item.label}
-                                icon={item.icon}
-                                isActive={location.pathname === item.path}
-                                onClick={() => navigate(item.path)}
-                                isCollapsed={isCollapsed}
-                                hasNotification={'notification' in item && item.notification}
-                                isOnlineIndicator={'online' in item && item.online}
-                            />
-                        );
-                    }
-                    return null;
-                })}
+                 {navItems.map(item => (
+                    <NavItem
+                        key={item.path}
+                        label={item.label}
+                        icon={item.icon}
+                        isActive={location.pathname === item.path}
+                        onClick={() => navigate(item.path)}
+                        isCollapsed={isCollapsed}
+                    />
+                ))}
+
+                <hr className={`my-2 border-slate-700 ${isCollapsed ? 'mx-2' : ''}`} />
+
+                <Tooltip 
+                    content={onlineFriendsCount > 0 ? (
+                        <div className="text-left">
+                            <p className="font-bold mb-1">Online Friends:</p>
+                            <ul className="space-y-1">{onlineFriends.slice(0, 5).map(f => <li key={f.uid}>- {f.displayName}</li>)}</ul>
+                        </div>
+                        ) : "No friends are online"}
+                    position="top"
+                >
+                    <NavItem
+                        label={duelLabel}
+                        icon={SwordIcon}
+                        isActive={location.pathname === '/duel-setup'}
+                        onClick={() => navigate('/duel-setup')}
+                        isCollapsed={isCollapsed}
+                        hasNotification={onlineFriendsCount > 0}
+                        isOnlineIndicator={onlineFriendsCount > 0}
+                    />
+                </Tooltip>
+                 {socialItems.map(item => (
+                    <NavItem
+                        key={item.path}
+                        label={item.label}
+                        icon={item.icon}
+                        isActive={location.pathname === item.path}
+                        onClick={() => navigate(item.path)}
+                        isCollapsed={isCollapsed}
+                    />
+                ))}
+                
+                <hr className={`my-2 border-slate-700 ${isCollapsed ? 'mx-2' : ''}`} />
+
+                {toolItems.map(item => (
+                    <NavItem
+                        key={item.path}
+                        label={item.label}
+                        icon={item.icon}
+                        isActive={location.pathname === item.path}
+                        onClick={() => navigate(item.path)}
+                        isCollapsed={isCollapsed}
+                    />
+                ))}
             </nav>
 
             <div className="flex-shrink-0 mt-auto pt-2 space-y-2">
