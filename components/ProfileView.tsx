@@ -9,7 +9,7 @@ import { SpinnerIcon, TrophyIcon, UserIcon, ClockIcon } from './icons/index.ts';
 import { useTranslations } from '../hooks/useTranslations.ts';
 import { formatDistanceToNow } from 'date-fns';
 import RecentActivity from './home/RecentActivity.tsx';
-import { CommunityIcon, MessageSquareIcon, ArrowUpIcon } from './icons/index.ts';
+import { CommunityIcon, ArrowUpIcon } from './icons/index.ts';
 import Tooltip from './common/Tooltip.tsx';
 
 const PostCard: React.FC<{ post: CommunityPost }> = ({ post }) => {
@@ -24,7 +24,7 @@ const PostCard: React.FC<{ post: CommunityPost }> = ({ post }) => {
                 <h3 className="font-bold text-white mb-1">{post.title}</h3>
                 <p className="text-slate-300 text-sm">{post.contentSnippet}</p>
                 <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
-                    <MessageSquareIcon className="w-4 h-4"/>
+                    <CommunityIcon className="w-4 h-4"/>
                     <span>{t('community_replies', { count: post.replies })}</span>
                     <span className="px-2 py-0.5 bg-primary-900/50 text-primary-300 rounded-full font-medium">{post.topic}</span>
                 </div>

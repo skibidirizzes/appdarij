@@ -128,7 +128,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
                             <ul className="space-y-1">{onlineFriends.slice(0, 5).map(f => <li key={f.uid}>- {f.displayName}</li>)}</ul>
                         </div>
                         ) : "No friends are online"}
-                    position="top"
+                    position={isCollapsed ? 'right' : 'top'}
                 >
                     <NavItem
                         label={duelLabel}

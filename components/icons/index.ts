@@ -39,7 +39,6 @@ export * from './MapPinIcon.tsx';
 export * from './SoundWaveIcon.tsx';
 export * from './CommunityIcon.tsx';
 export * from './ArrowUpIcon.tsx';
-export * from './MessageSquareIcon.tsx';
 export * from './PhoneIcon.tsx';
 export * from './DotsHorizontalIcon.tsx';
 export * from './PaperclipIcon.tsx';

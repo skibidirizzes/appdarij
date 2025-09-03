@@ -205,8 +205,7 @@ const ParentalControlsView: React.FC = () => {
     
     const handleConfirmLink = () => {
         if (!childToConfirm) return;
-        // Mock update to user context
-        updateProfileDetails({ childAccountIds: [childToConfirm.uid] });
+        updateProfileDetails({ childAccountIds: [...(user.childAccountIds || []), childToConfirm.uid!] });
         setChildData(childToConfirm);
         addInfoToast({ type: 'success', message: `Successfully linked with ${childToConfirm.displayName}!`});
         setChildToConfirm(null);

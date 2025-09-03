@@ -6,7 +6,7 @@ import { getElevenLabsAudioUrl } from '../services/elevenLabsService.ts';
 import { Chat } from '@google/genai';
 import Card from './common/Card.tsx';
 import Button from './common/Button.tsx';
-import { SendIcon, SpinnerIcon, ChatBubbleIcon, MicrophoneIcon, PhoneIcon, MessageSquareIcon, PaperclipIcon, XCircleIcon } from './icons/index.ts';
+import { SendIcon, SpinnerIcon, ChatBubbleIcon, MicrophoneIcon, PhoneIcon, CommunityIcon, PaperclipIcon, XCircleIcon } from './icons/index.ts';
 import { Message, ScriptMode } from '../types.ts';
 import SpeakButton from './common/SpeakButton.tsx';
 
@@ -288,7 +288,7 @@ const ConversationView: React.FC = () => {
                 <p className="text-slate-300 mt-4 mb-8 text-lg">{t('conversation_mode_select_title')}</p>
                 <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
                     <button onClick={() => handleSelectMode('chat')} className="p-8 rounded-2xl bg-slate-800/60 border border-slate-700 hover:bg-slate-700/80 hover:border-primary-500 transition-all text-left transform hover:-translate-y-2">
-                        <MessageSquareIcon className="w-10 h-10 text-primary-400 mb-3" />
+                        <CommunityIcon className="w-10 h-10 text-primary-400 mb-3" />
                         <h3 className="text-xl font-bold text-white">{t('conversation_mode_select_chat')}</h3>
                         <p className="text-slate-400">{t('conversation_mode_select_chat_desc')}</p>
                     </button>

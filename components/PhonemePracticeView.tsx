@@ -3,7 +3,7 @@ import { useTranslations } from '../hooks/useTranslations.ts';
 import { getPhonemeExample, getPronunciationFeedback } from '../services/geminiService.ts';
 import Card from './common/Card.tsx';
 import Button from './common/Button.tsx';
-import { SpinnerIcon, SoundWaveIcon, MicrophoneIcon, TrophyIcon, CheckCircleIcon, XCircleIcon, ChevronRightIcon } from './icons/index.ts';
+import { SpinnerIcon, SoundWaveIcon, MicrophoneIcon, TrophyIcon, CheckCircleIcon, XCircleIcon, ChevronRightIcon, LightbulbIcon } from './icons/index.ts';
 import SpeakButton from './common/SpeakButton.tsx';
 import { playCorrectSound, playIncorrectSound } from '../utils/sfx.ts';
 import { UserContext } from '../context/UserContext.tsx';
@@ -362,27 +362,44 @@ const PhonemePracticeView: React.FC = () => {
             
             {resultState === 'incorrect' && (
                 <Card className="w-full mt-6 p-5 bg-red-900/30 border border-red-700/50 animate-fade-in-up">
-                    <div className="flex items-start gap-4 flex-1">
-                        <XCircleIcon className="w-8 h-8 text-red-300 flex-shrink-0 mt-1" />
-                        <div className="flex-1 text-left space-y-3">
-                            <div>
-                                <p className="font-bold text-white">{t('phoneme_practice_correct_solution')}</p>
-                                <div className="flex items-center gap-2">
-                                     <span className="text-slate-200 font-semibold text-lg">{example?.latin} ({example?.arabic})</span>
-                                     {example && <SpeakButton textToSpeak={example.arabic} />}
+                    <div className="flex items-center gap-3 mb-4">
+                        <XCircleIcon className="w-8 h-8 text-red-300 flex-shrink-0" />
+                        <h3 className="text-xl font-bold text-white">{t('phoneme_practice_review_title')}</h3>
+                    </div>
+
+                    <div className="space-y-4 text-left">
+                        {/* Correct Solution */}
+                        <div className="p-3 rounded-lg bg-slate-800/50">
+                            <p className="text-sm font-semibold text-slate-300 mb-2">{t('phoneme_practice_correct_solution')}</p>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="font-arabic text-3xl text-white">{example?.arabic}</p>
+                                    <p className="text-slate-300">{example?.latin}</p>
                                 </div>
+                                {example && <SpeakButton textToSpeak={example.arabic} />}
                             </div>
-                            <div>
-                                <p className="font-bold text-white">{t('phoneme_practice_heard')}</p>
-                                <p className="text-slate-300 italic">"{transcript}"</p>
+                        </div>
+                        
+                        {/* What we heard */}
+                        <div className="p-3 rounded-lg bg-slate-800/50">
+                            <p className="text-sm font-semibold text-slate-300 mb-2">{t('phoneme_practice_heard')}</p>
+                            <div className="flex items-center gap-2">
+                                <MicrophoneIcon className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                                <p className="text-slate-200 italic">"{transcript}"</p>
                             </div>
-                             <div>
-                                <p className="font-bold text-white">Feedback</p>
-                                <p className="text-sm text-slate-300">{feedback}</p>
+                        </div>
+
+                        {/* AI Feedback */}
+                        <div className="p-3 rounded-lg bg-slate-800/50">
+                            <p className="text-sm font-semibold text-slate-300 mb-2">{t('phoneme_practice_ai_feedback')}</p>
+                            <div className="flex items-start gap-2">
+                                <LightbulbIcon className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                                <p className="text-slate-200">{feedback}</p>
                             </div>
                         </div>
                     </div>
-                     <Button onClick={handleContinue} className="w-full justify-center mt-4">
+                    
+                    <Button onClick={handleContinue} className="w-full justify-center mt-5">
                         {currentSetIndex === SET_LENGTH - 1 ? 'Finish Set' : t('phoneme_practice_continue_button')}
                     </Button>
                 </Card>

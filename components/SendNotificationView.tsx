@@ -12,11 +12,9 @@ const SendNotificationView: React.FC = () => {
     const { addInfoToast } = useContext(UserContext);
     
     const [searchQuery, setSearchQuery] = useState('');
-    // FIX: Use a union type to accommodate results from both search functions.
     const [searchResults, setSearchResults] = useState<(UserProfile | Friend)[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     
-    // FIX: Use a union type for the selected user as well.
     const [selectedUser, setSelectedUser] = useState<UserProfile | Friend | null>(null);
     const [title, setTitle] = useState('');
     const [body, setBody] = useState('');
@@ -36,7 +34,6 @@ const SendNotificationView: React.FC = () => {
             setSearchResults(user ? [user] : []);
         } else {
             const results = await searchUsers(searchQuery, []);
-            // FIX: Removed incorrect type assertion, as searchResults now accepts Friend[].
             setSearchResults(results);
         }
         

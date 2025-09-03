@@ -379,6 +379,8 @@ const baseTranslations = {
     phoneme_practice_correct_header: "Correct!",
     phoneme_practice_continue_button: "Continue",
     phoneme_practice_next_button: "Next",
+    phoneme_practice_review_title: "Let's Review That One",
+    phoneme_practice_ai_feedback: "AI Feedback",
     // Popups
     popup_friends_title: "Learning is better with friends!",
     popup_friends_description: "Did you know you can add friends and challenge them to duels? Connect with others to stay motivated!",
@@ -821,6 +823,8 @@ const baseTranslations = {
     phoneme_practice_correct_header: "Correct!",
     phoneme_practice_continue_button: "Doorgaan",
     phoneme_practice_next_button: "Volgende",
+    phoneme_practice_review_title: "Laten we die eens bekijken",
+    phoneme_practice_ai_feedback: "AI Feedback",
     // Popups
     popup_friends_title: "Leren is leuker met vrienden!",
     popup_friends_description: "Wist je dat je vrienden kunt toevoegen en uitdagen voor duels? Maak contact met anderen om gemotiveerd te blijven!",

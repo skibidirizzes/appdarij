@@ -6,7 +6,7 @@ import { CommunityPost, View } from '../types.ts';
 import Card from './common/Card.tsx';
 import Button from './common/Button.tsx';
 import Modal from './common/Modal.tsx';
-import { CommunityIcon, ArrowUpIcon, MessageSquareIcon, SpinnerIcon, PencilIcon } from './icons/index.ts';
+import { CommunityIcon, ArrowUpIcon, SpinnerIcon, PencilIcon } from './icons/index.ts';
 import { UserContext } from '../context/UserContext.tsx';
 import { createCommunityPost, getCommunityPosts } from '../services/firebaseService.ts';
 
@@ -34,7 +34,7 @@ const PostCard: React.FC<{ post: CommunityPost, onNavigate: (path: string) => vo
                 <p className="text-slate-300 text-sm mb-4">{post.contentSnippet}</p>
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2 text-sm text-slate-400">
-                        <MessageSquareIcon className="w-4 h-4"/>
+                        <CommunityIcon className="w-4 h-4"/>
                         <span>{t('community_replies', { count: post.replies })}</span>
                     </div>
                 </div>
