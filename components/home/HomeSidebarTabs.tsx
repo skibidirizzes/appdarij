@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useTranslations } from '../../hooks/useTranslations.ts';
 import Card from '../common/Card.tsx';
 import WeeklyQuests from './WeeklyQuests.tsx';
 import RecentActivity from './RecentActivity.tsx';
 import { DumbbellIcon, TrophyIcon } from '../icons/index.ts';
+import { UserContext } from '../../context/UserContext.tsx';
 
 type Tab = 'quests' | 'activity';
 
 const HomeSidebarTabs: React.FC = () => {
     const [activeTab, setActiveTab] = useState<Tab>('quests');
     const { t } = useTranslations();
+    const { user } = useContext(UserContext);
 
     const tabs: { id: Tab; label: string; icon: React.FC<any> }[] = [
         { id: 'quests', label: t('home_sidebar_tab_quests'), icon: DumbbellIcon },
@@ -32,7 +34,7 @@ const HomeSidebarTabs: React.FC = () => {
             </div>
             <div className="p-4">
                 {activeTab === 'quests' && <WeeklyQuests />}
-                {activeTab === 'activity' && <RecentActivity />}
+                {activeTab === 'activity' && <RecentActivity userProfile={user} />}
             </div>
         </Card>
     );

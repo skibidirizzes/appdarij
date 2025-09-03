@@ -3,10 +3,18 @@ import { UserContext } from '../../context/UserContext.tsx';
 import { useTranslations } from '../../hooks/useTranslations.ts';
 import { ACHIEVEMENTS } from '../../constants.ts';
 import { TranslationKey } from '../../localization/translations.ts';
+import { UserProfile } from '../../types.ts';
 
-const RecentActivity: React.FC = () => {
-    const { user } = useContext(UserContext);
+interface RecentActivityProps {
+    userProfile?: UserProfile;
+}
+
+const RecentActivity: React.FC<RecentActivityProps> = ({ userProfile }) => {
+    const { user: currentUser } = useContext(UserContext);
     const { t } = useTranslations();
+
+    const user = userProfile || currentUser;
+    if (!user) return null;
 
     const recentAchievements = user.unlockedAchievements.slice(-4).reverse();
 

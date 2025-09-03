@@ -38,7 +38,8 @@ const NavItem: React.FC<{
     onClick: () => void;
     isCollapsed: boolean;
     hasNotification?: boolean;
-}> = ({ icon: Icon, label, isActive, onClick, isCollapsed, hasNotification }) => (
+    isOnlineIndicator?: boolean;
+}> = ({ icon: Icon, label, isActive, onClick, isCollapsed, hasNotification, isOnlineIndicator }) => (
     <div className="relative">
         <button
             onClick={onClick}
@@ -51,10 +52,10 @@ const NavItem: React.FC<{
         >
             <Icon className={`w-6 h-6 transition-colors duration-200 flex-shrink-0 ${isActive ? 'text-on-primary' : 'text-primary-400 group-hover:text-primary-300'}`} />
             {!isCollapsed && <span className="flex-1 ml-4 whitespace-nowrap text-left">{label}</span>}
+             {hasNotification && (
+                <span className={`absolute top-1 right-2 w-2.5 h-2.5 rounded-full border-2 border-[var(--color-bg-sidebar)] ${isOnlineIndicator ? 'bg-emerald-500 animate-pulse-dot' : 'bg-red-500'}`}></span>
+            )}
         </button>
-        {hasNotification && (
-            <span className="absolute top-1 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[var(--color-bg-sidebar)]"></span>
-        )}
     </div>
 );
 
@@ -82,7 +83,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
         // Community & Social
         { path: '/friends', label: t('nav_friends'), icon: UserGroupIcon },
         { path: '/leaderboard', label: t('nav_leaderboard'), icon: LeaderboardIcon },
-        { path: '/duel-setup', label: duelLabel, icon: SwordIcon },
+        { path: '/duel-setup', label: duelLabel, icon: SwordIcon, notification: onlineFriendsCount > 0, online: true },
         { path: '/achievements', label: t('nav_achievements'), icon: TrophyIcon },
         ...(isParentalLinkActive ? [{ path: '/parental-controls', label: t('nav_parental_controls'), icon: ShieldCheckIcon, notification: true }] : []),
         { isSeparator: true },
@@ -119,6 +120,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
                                 onClick={() => navigate(item.path)}
                                 isCollapsed={isCollapsed}
                                 hasNotification={'notification' in item && item.notification}
+                                isOnlineIndicator={'online' in item && item.online}
                             />
                         );
                     }

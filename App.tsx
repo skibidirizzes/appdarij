@@ -15,6 +15,7 @@ import NotificationToast from './components/NotificationToast.tsx';
 import AuthView from './components/AuthView.tsx';
 import QuizInProgressToast from './components/QuizInProgressToast.tsx';
 import { ThemePromptPopup, DailyGoalPopup, FriendsPromptPopup, NotificationPromptPopup, ProfileSetupPopup } from './components/popups/index.ts';
+import { ADMIN_UIDS } from './constants.ts';
 
 // Dynamic imports for views
 import HomeView from './components/home/HomeView.tsx';
@@ -38,6 +39,7 @@ import DuelQuizView from './components/DuelQuizView.tsx';
 import MasteryView from './components/MasteryView.tsx';
 import LabsView from './components/LabsView.tsx';
 import ResetPasswordView from './components/ResetPasswordView.tsx';
+import SendNotificationView from './components/SendNotificationView.tsx';
 
 const MainAppLayout: React.FC = () => {
   const { user, isLoading: isUserLoading, syncOfflineResults, activePopup, setActivePopup, markThemePromptAsSeen, markFriendsPromptAsSeen, addInfoToast } = useContext(UserContext);
@@ -157,6 +159,16 @@ const MainAppLayout: React.FC = () => {
   )
 }
 
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { user } = useContext(UserContext);
+    const isAdmin = user && ADMIN_UIDS.includes(user.uid);
+
+    if (!isAdmin) {
+        return <Navigate to="/dashboard" replace />;
+    }
+    return <>{children}</>;
+};
+
 const AppContent: React.FC = () => {
     const { user, isLoading } = useContext(UserContext);
     const [searchParams] = useSearchParams();
@@ -203,6 +215,7 @@ const AppContent: React.FC = () => {
                 <Route path="duel-quiz" element={<DuelQuizView />} />
                 <Route path="mastery" element={<MasteryView />} />
                 <Route path="labs" element={<LabsView />} />
+                <Route path="send-notification" element={<ProtectedRoute><SendNotificationView /></ProtectedRoute>} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>
         </Routes>

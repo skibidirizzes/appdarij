@@ -30,7 +30,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, isActive, onClick,
         <div className={`relative w-8 h-8 flex items-center justify-center mb-1 rounded-full ${isActive ? 'bg-primary-500/20' : ''}`}>
             <Icon className="w-6 h-6" />
             {hasNotification && (
-                <span className={`absolute top-0 right-0 block h-2.5 w-2.5 rounded-full ${isOnlineIndicator ? 'bg-emerald-500' : 'bg-red-500'} ring-2 ring-slate-800`} />
+                <span className={`absolute top-0 right-0 block h-2.5 w-2.5 rounded-full ring-2 ring-slate-800 ${isOnlineIndicator ? 'bg-emerald-500 animate-pulse-dot' : 'bg-red-500'}`} />
             )}
         </div>
         <span className={`text-xs mt-0.5 whitespace-nowrap ${isActive ? 'font-bold' : ''}`}>{label}</span>

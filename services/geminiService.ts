@@ -131,7 +131,7 @@ const systemInstruction = `You are a friendly and encouraging language tutor spe
 - CRITICAL RULE: The question type determines which properties are allowed. Do NOT mix properties from different types.
 - A question with type 'multiple-choice' MUST contain 'options' (an array of 4 choices) and 'correctAnswerIndex'. It MUST NOT contain 'correctAnswer', 'wordBank', or 'correctSentence'.
 - A question with type 'writing' or 'speaking' MUST contain 'correctAnswer'. It MUST NOT contain 'options', 'correctAnswerIndex', 'wordBank', or 'correctSentence'.
-- A question with type 'sentence-formation' MUST contain BOTH 'wordBank' AND 'correctSentence'. It MUST NOT contain 'options', 'correctAnswerIndex', or 'correctAnswer'.
+- A question with type 'sentence-formation' MUST contain BOTH 'wordBank' AND 'correctSentence'. It MUST NOT contain 'options', 'correctAnswerIndex', 'or 'correctAnswer'.
     - 'correctSentence' is an array of strings in Latin script in the correct order. Example: ["hadi", "l-makla", "bnina"].
     - 'wordBank' is an array of the same strings from 'correctSentence', but shuffled. Example: ["bnina", "l-makla", "hadi"].
 - CRITICAL RULE: For questions on 'Vocabulary', 'Numbers', or 'Spaced Repetition' topics, you MUST include the 'targetWord' property.
@@ -626,7 +626,10 @@ export async function getPhonemeExample(
   phoneme: string
 ): Promise<{ latin: string; arabic: string; definition: string }> {
   if (!ai) throw new Error(AI_DISABLED_ERROR);
-  const prompt = `Provide one common, simple Moroccan Darija word that contains the sound represented by the letter '${phoneme}'. CRITICAL: Your primary goal is to provide VARIETY. You MUST give me a different word than you might have provided before for this same phoneme. Always find a new, interesting, yet simple example. Avoid extremely common words like 'qahwa' for 'ق' or 'b7al' for 'ح' unless you have no other choice. Be creative.`;
+  const prompt = `Provide one common, simple Moroccan Darija word that contains the sound represented by the letter '${phoneme}'.
+  CRITICAL INSTRUCTION: Your primary goal is to provide VARIETY. Each time you receive this prompt, you MUST return a DIFFERENT word. Do not repeat words you might have given before for this same phoneme.
+  For example, if you already gave 'qahwa' for 'ق', next time give 'qalb' or 'qamar'.
+  Be creative and find new, interesting, yet simple examples.`;
   return handleApiCall(prompt, phonemeExampleSchema);
 }
 

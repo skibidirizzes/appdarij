@@ -8,7 +8,7 @@ import Button from './common/Button.tsx';
 import { SpinnerIcon, TrophyIcon, UserIcon, ClockIcon } from './icons/index.ts';
 import { useTranslations } from '../hooks/useTranslations.ts';
 import { formatDistanceToNow } from 'date-fns';
-import RecentActivity from './home/RecentActivity.tsx'; // Reusing this component
+import RecentActivity from './home/RecentActivity.tsx';
 import { CommunityIcon, MessageSquareIcon, ArrowUpIcon } from './icons/index.ts';
 import Tooltip from './common/Tooltip.tsx';
 
@@ -157,7 +157,7 @@ const ProfileView: React.FC = () => {
                 </div>
                 <div className="p-4">
                     {activeTab === 'activity' && (
-                        isCurrentUser ? <RecentActivity /> : <p className="text-slate-400 text-center">Recent activity is private.</p>
+                        <RecentActivity userProfile={profile} />
                     )}
                     {activeTab === 'posts' && (
                         posts.length > 0 ? (
