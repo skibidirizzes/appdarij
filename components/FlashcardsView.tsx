@@ -20,6 +20,8 @@ const FlashcardsView: React.FC = () => {
     if (activeDeck) {
         return <DeckDetailView deck={activeDeck} onBack={() => setActiveDeck(null)} />;
     }
+    
+    const decks = user?.flashcardDecks || [];
 
     return (
         <div className="w-full">
@@ -35,9 +37,9 @@ const FlashcardsView: React.FC = () => {
                 <Button onClick={() => setIsCreateModalOpen(true)}>Create New Deck</Button>
             </div>
 
-            {user?.flashcardDecks && user.flashcardDecks.length > 0 ? (
+            {decks.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {user.flashcardDecks.map(deck => (
+                    {decks.map(deck => (
                         <Card key={deck.id} className="p-5 flex flex-col justify-between card-lift-hover">
                             <div>
                                 <h3 className="text-xl font-bold text-white truncate">{deck.name}</h3>

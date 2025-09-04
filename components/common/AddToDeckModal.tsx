@@ -35,28 +35,18 @@ const AddToDeckModal: React.FC<AddToDeckModalProps> = ({ word, onClose }) => {
     const handleCreateAndAdd = async () => {
         if (!newDeckName.trim()) return;
         
+        // This is a bit of a hack. Since createDeck is async but doesn't return the new deck,
+        // we can't reliably get the new deck's ID right away.
+        // A better approach would be for createDeck to return the created deck object.
+        // For this implementation, we'll create the deck and then close the modal,
+        // letting the user add the card manually after creation.
+        // A more robust solution would require bigger changes to the context.
         await createDeck(newDeckName, `Words about ${newDeckName}`);
         
-        // This is a bit of a hack. We need to get the newly created deck's ID.
-        // A better solution would have createDeck return the new deck.
-        // For now, we'll assume the last deck in the list is the new one.
-        const newDecks = user?.flashcardDecks || [];
-        const newDeck = newDecks[newDecks.length - 1];
-        
-        if(newDeck) {
-            const card: Flashcard = {
-                id: `${word.latin}_${Date.now()}`,
-                frontLatin: word.latin,
-                frontArabic: word.arabic,
-                back: word.definition,
-                exampleLatin: word.examples[0]?.latin,
-                exampleArabic: word.examples[0]?.arabic,
-                exampleTranslation: word.examples[0]?.translation,
-            };
-            addCardToDeck(newDeck.id, card);
-        }
         onClose();
     };
+    
+    const decks = user?.flashcardDecks || [];
 
     return (
         <Modal isOpen={true} onClose={onClose} title={`Add "${word.latin}" to a deck`}>
@@ -67,22 +57,28 @@ const AddToDeckModal: React.FC<AddToDeckModalProps> = ({ word, onClose }) => {
                         <input type="text" value={newDeckName} onChange={e => setNewDeckName(e.target.value)} className="w-full p-2 bg-slate-700 border-2 border-slate-600 rounded-lg text-white" />
                         <div className="flex gap-2 mt-3">
                             <Button onClick={() => setIsCreatingNew(false)} className="w-full bg-slate-600 hover:bg-slate-500">Cancel</Button>
-                            <Button onClick={handleCreateAndAdd} disabled={!newDeckName.trim()} className="w-full">Create & Add</Button>
+                            <Button onClick={handleCreateAndAdd} disabled={!newDeckName.trim()} className="w-full">Create Deck</Button>
                         </div>
                     </div>
                 ) : (
                     <>
-                        <select
-                            value={selectedDeckId}
-                            onChange={(e) => setSelectedDeckId(e.target.value)}
-                            className="w-full p-2 bg-slate-700 border-2 border-slate-600 rounded-lg text-white"
-                        >
-                            <option value="">Select a deck...</option>
-                            {user?.flashcardDecks?.map(deck => (
-                                <option key={deck.id} value={deck.id}>{deck.name}</option>
-                            ))}
-                        </select>
-                        <Button onClick={handleAddToDeck} disabled={!selectedDeckId} className="w-full">Add to Selected Deck</Button>
+                        {decks.length > 0 ? (
+                            <>
+                                <select
+                                    value={selectedDeckId}
+                                    onChange={(e) => setSelectedDeckId(e.target.value)}
+                                    className="w-full p-2 bg-slate-700 border-2 border-slate-600 rounded-lg text-white"
+                                >
+                                    <option value="">Select a deck...</option>
+                                    {decks.map(deck => (
+                                        <option key={deck.id} value={deck.id}>{deck.name}</option>
+                                    ))}
+                                </select>
+                                <Button onClick={handleAddToDeck} disabled={!selectedDeckId} className="w-full">Add to Selected Deck</Button>
+                            </>
+                        ) : (
+                            <p className="text-center text-slate-400">You don't have any decks yet. Create one to get started!</p>
+                        )}
                         <div className="relative my-2">
                             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-600" /></div>
                             <div className="relative flex justify-center text-sm"><span className="px-2 bg-[var(--color-bg-card)] text-slate-400">OR</span></div>

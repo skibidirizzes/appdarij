@@ -9,11 +9,16 @@ import { UserProfile, Mistake } from '../types.ts';
 import { getUserProfile } from '../services/firebaseService.ts';
 
 
-// Mock function to simulate fetching child data
-const getChildData = async (code: string): Promise<Partial<UserProfile> | null> => {
+// Mock function to simulate fetching child data via a linking code
+const getChildDataByCode = async (code: string): Promise<Partial<UserProfile> | null> => {
     // In a real app, this would query a user with this linking code.
     await new Promise(res => setTimeout(res, 500));
     
+    // First, try if the code is a direct UID for easier testing
+    const userByUid = await getUserProfile(code);
+    if (userByUid) return userByUid;
+
+    // Then, use mock logic for demo purposes
     if (code && code.length === 6 && /^[A-Z0-9]+$/.test(code)) {
          return {
             uid: `mock_child_${code}`,
@@ -178,7 +183,7 @@ const ParentalControlsView: React.FC = () => {
         const fetchLinkedData = async () => {
             setIsLoading(true);
             if (linkedChildId) {
-                const data = await getChildData(linkedChildId); // In real app, use UID to fetch
+                const data = await getUserProfile(linkedChildId);
                 setChildData(data);
             } else if (user.parentAccountId) {
                 const data = await getUserProfile(user.parentAccountId);
@@ -194,7 +199,7 @@ const ParentalControlsView: React.FC = () => {
         e.preventDefault();
         setIsLoading(true);
         setError('');
-        const data = await getChildData(linkCode);
+        const data = await getChildDataByCode(linkCode);
         if(data) {
             setChildToConfirm(data);
         } else {
@@ -224,7 +229,6 @@ const ParentalControlsView: React.FC = () => {
     }
 
     const handleDisconnect = () => {
-        // Mock update
         updateProfileDetails({ childAccountIds: [] });
         setChildData(null);
         setLinkCode('');

@@ -288,7 +288,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authorUid: user.uid,
         cards: [],
     };
-    const updatedDecks = [...user.flashcardDecks, newDeck];
+    const updatedDecks = [...(user.flashcardDecks || []), newDeck];
     await updateUserProfile(user.uid, { flashcardDecks: updatedDecks });
     setUser(prev => prev ? ({ ...prev, flashcardDecks: updatedDecks }) : null);
     addInfoToast({ type: 'success', message: `Deck "${name}" created!` });
@@ -296,7 +296,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const deleteDeck = useCallback(async (deckId: string) => {
     if (!user) return;
-    const updatedDecks = user.flashcardDecks.filter(deck => deck.id !== deckId);
+    const updatedDecks = (user.flashcardDecks || []).filter(deck => deck.id !== deckId);
     await updateUserProfile(user.uid, { flashcardDecks: updatedDecks });
     setUser(prev => prev ? ({ ...prev, flashcardDecks: updatedDecks }) : null);
     addInfoToast({ type: 'info', message: 'Deck deleted.' });
@@ -304,10 +304,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const addCardToDeck = useCallback(async (deckId: string, card: Flashcard) => {
     if (!user) return;
-    const updatedDecks = user.flashcardDecks.map(deck => {
+    const updatedDecks = (user.flashcardDecks || []).map(deck => {
         if (deck.id === deckId) {
             // Avoid duplicates
-            if (deck.cards.some(c => c.id === card.id || c.frontLatin === card.frontLatin)) return deck;
+            if (deck.cards.some(c => c.id === card.id || c.frontLatin === card.frontLatin)) {
+                addInfoToast({ type: 'warning', message: 'Card already exists in this deck.'});
+                return deck;
+            }
             return { ...deck, cards: [...deck.cards, card] };
         }
         return deck;
@@ -319,7 +322,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const removeCardFromDeck = useCallback(async (deckId: string, cardId: string) => {
     if (!user) return;
-    const updatedDecks = user.flashcardDecks.map(deck => {
+    const updatedDecks = (user.flashcardDecks || []).map(deck => {
         if (deck.id === deckId) {
             return { ...deck, cards: deck.cards.filter(card => card.id !== cardId) };
         }
