@@ -5,7 +5,7 @@ import {
     BookOpenIcon, TrophyIcon, GearIcon, ClipboardListIcon, LibraryIcon, 
     ChatBubbleIcon, LeaderboardIcon, UserGroupIcon, MapPinIcon, 
     SoundWaveIcon, CommunityIcon, FlaskIcon, ShieldCheckIcon, 
-    SwordIcon, RootIcon, DumbbellIcon, SendIcon
+    SwordIcon, RootIcon, DumbbellIcon, SendIcon, FlashcardIcon
 } from './icons/index.ts';
 import { UserContext } from '../context/UserContext.tsx';
 import { ADMIN_UIDS } from '../constants.ts';
@@ -53,6 +53,7 @@ const BottomNav: React.FC = () => {
         { path: '/dashboard', label: t('nav_dashboard'), icon: BookOpenIcon },
         { path: '/mastery', label: "Mastery", icon: DumbbellIcon },
         { path: '/mistakes-bank', label: "Mistakes", icon: ClipboardListIcon },
+        { path: '/flashcards', label: "Flashcards", icon: FlashcardIcon },
         { path: '/conversation', label: t('nav_conversation'), icon: ChatBubbleIcon },
         { path: '/phoneme-practice', label: t('nav_phoneme_practice'), icon: SoundWaveIcon },
         { path: '/friends', label: t('nav_friends'), icon: UserGroupIcon },

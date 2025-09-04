@@ -51,3 +51,4 @@ export * from './UserIcon.tsx';
 export * from './RefreshCwIcon.tsx';
 export * from './GiftIcon.tsx';
 export * from './ShareIcon.tsx';
+export * from './FlashcardIcon.tsx';

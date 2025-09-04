@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import firebase from 'firebase/compat/app';
-import { UserProfile, UserSettings, LearningTopic, AchievementID, Achievement, UpdateUserPayload, UserContextType, QuizQuestion, UserAnswer, Mistake, OfflineQuizResult, WordHistoryEntry, InfoToastData, ActivePopup, QuestProgress, Quest, SentenceFormationQuestion, Friend, createNewDefaultUser } from '../types.ts';
+// FIX: Add Flashcard-related types to import.
+import { UserProfile, UserSettings, LearningTopic, AchievementID, Achievement, UpdateUserPayload, UserContextType, QuizQuestion, UserAnswer, Mistake, OfflineQuizResult, WordHistoryEntry, InfoToastData, ActivePopup, QuestProgress, Quest, SentenceFormationQuestion, Friend, createNewDefaultUser, FlashcardDeck, Flashcard, WordInfo } from '../types.ts';
 import { LOCAL_STORAGE_KEY, ACHIEVEMENTS, LEARNING_TOPICS, LEVELS, QUIZ_LENGTH, POINTS_PER_CORRECT_ANSWER, WRITING_SIMILARITY_THRESHOLD, XP_PER_DAILY_LOGIN, XP_PER_REVIEW_QUIZ, OFFLINE_QUEUE_KEY, XP_PER_FIRST_CONVO, AVAILABLE_QUESTS, STICKERS } from '../constants.ts';
 import { calculateSimilarity } from '../utils/stringSimilarity.ts';
 import { auth, firestore, requestAndSaveToken, getUserProfile, createUserProfile, updateUserProfile, signOut, getUsersByIds, sendFriendRequest as fbSendFriendRequest, respondToFriendRequest as fbRespondToFriendRequest, removeFriend as fbRemoveFriend } from '../services/firebaseService.ts';
@@ -43,6 +44,13 @@ export const UserContext = createContext<UserContextType>({
   mistakeAnalysis: null,
   collectReward: () => {},
   useStreakFreeze: async () => false,
+  // FIX: Add missing properties for flashcards to satisfy UserContextType
+  createDeck: async () => {},
+  deleteDeck: async () => {},
+  addCardToDeck: async () => {},
+  removeCardFromDeck: async () => {},
+  wordToAddToDeck: null,
+  setWordToAddToDeck: () => {},
 });
 
 
@@ -53,6 +61,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [infoToasts, setInfoToasts] = useState<InfoToastData[]>([]);
   const [activePopup, setActivePopup] = useState<ActivePopup>(null);
   const [mistakeAnalysis, setMistakeAnalysis] = useState<string | null>(null);
+  // FIX: Add state for word to add to deck
+  const [wordToAddToDeck, setWordToAddToDeck] = useState<WordInfo | null>(null);
   
   const [friends, setFriends] = useState<Friend[]>([]);
   const [incomingRequests, setIncomingRequests] = useState<Friend[]>([]);
@@ -268,6 +278,58 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [user, addInfoToast]);
 
+  // FIX: Implement flashcard deck and card management functions
+  const createDeck = useCallback(async (name: string, description: string) => {
+    if (!user) return;
+    const newDeck: FlashcardDeck = {
+        id: `${name.replace(/\s+/g, '-')}-${Date.now()}`,
+        name,
+        description,
+        authorUid: user.uid,
+        cards: [],
+    };
+    const updatedDecks = [...user.flashcardDecks, newDeck];
+    await updateUserProfile(user.uid, { flashcardDecks: updatedDecks });
+    setUser(prev => prev ? ({ ...prev, flashcardDecks: updatedDecks }) : null);
+    addInfoToast({ type: 'success', message: `Deck "${name}" created!` });
+  }, [user, addInfoToast]);
+  
+  const deleteDeck = useCallback(async (deckId: string) => {
+    if (!user) return;
+    const updatedDecks = user.flashcardDecks.filter(deck => deck.id !== deckId);
+    await updateUserProfile(user.uid, { flashcardDecks: updatedDecks });
+    setUser(prev => prev ? ({ ...prev, flashcardDecks: updatedDecks }) : null);
+    addInfoToast({ type: 'info', message: 'Deck deleted.' });
+  }, [user, addInfoToast]);
+  
+  const addCardToDeck = useCallback(async (deckId: string, card: Flashcard) => {
+    if (!user) return;
+    const updatedDecks = user.flashcardDecks.map(deck => {
+        if (deck.id === deckId) {
+            // Avoid duplicates
+            if (deck.cards.some(c => c.id === card.id || c.frontLatin === card.frontLatin)) return deck;
+            return { ...deck, cards: [...deck.cards, card] };
+        }
+        return deck;
+    });
+    await updateUserProfile(user.uid, { flashcardDecks: updatedDecks });
+    setUser(prev => prev ? ({ ...prev, flashcardDecks: updatedDecks }) : null);
+    addInfoToast({ type: 'success', message: `Card added to deck!` });
+  }, [user, addInfoToast]);
+  
+  const removeCardFromDeck = useCallback(async (deckId: string, cardId: string) => {
+    if (!user) return;
+    const updatedDecks = user.flashcardDecks.map(deck => {
+        if (deck.id === deckId) {
+            return { ...deck, cards: deck.cards.filter(card => card.id !== cardId) };
+        }
+        return deck;
+    });
+    await updateUserProfile(user.uid, { flashcardDecks: updatedDecks });
+    setUser(prev => prev ? ({ ...prev, flashcardDecks: updatedDecks }) : null);
+    addInfoToast({ type: 'info', message: 'Card removed from deck.' });
+  }, [user, addInfoToast]);
+
   const markThemePromptAsSeen = async () => { 
       if(!user) return;
       await updateUserProfile(user.uid, { hasSeenThemePrompt: true });
@@ -375,10 +437,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     mistakeAnalysis,
     collectReward,
     useStreakFreeze,
+    // FIX: Add flashcard functions and state to context value
+    createDeck,
+    deleteDeck,
+    addCardToDeck,
+    removeCardFromDeck,
+    wordToAddToDeck,
+    setWordToAddToDeck,
   }), [
     user, isLoading, updateUser, submitQuizResults, updateSettings, updateProfileDetails, logout, 
     newlyUnlockedAchievements, clearNewlyUnlockedAchievements, isLevelUnlocked,
-    addInfoToast, infoToasts, syncOfflineResults, activePopup, mistakeAnalysis, friends, incomingRequests, outgoingRequests, collectReward, useStreakFreeze
+    addInfoToast, infoToasts, syncOfflineResults, activePopup, mistakeAnalysis, friends, incomingRequests, outgoingRequests, collectReward, useStreakFreeze,
+    // FIX: Add flashcard functions and state to dependency array
+    createDeck, deleteDeck, addCardToDeck, removeCardFromDeck, wordToAddToDeck
   ]);
 
   return (

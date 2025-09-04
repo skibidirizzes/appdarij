@@ -17,6 +17,7 @@ import { AuthView } from './components/AuthView.tsx';
 import QuizInProgressToast from './components/QuizInProgressToast.tsx';
 import { ThemePromptPopup, DailyGoalPopup, FriendsPromptPopup, NotificationPromptPopup, ProfileSetupPopup } from './components/popups/index.ts';
 import { ADMIN_UIDS } from './constants.ts';
+import AddToDeckModal from './components/common/AddToDeckModal.tsx';
 
 // Dynamic imports for views
 import HomeView from './components/home/HomeView.tsx';
@@ -42,9 +43,10 @@ import MasteryView from './components/MasteryView.tsx';
 import LabsView from './components/LabsView.tsx';
 import ResetPasswordView from './components/ResetPasswordView.tsx';
 import SendNotificationView from './components/SendNotificationView.tsx';
+import FlashcardsView from './components/FlashcardsView.tsx';
 
 const MainAppLayout: React.FC = () => {
-  const { user, isLoading: isUserLoading, syncOfflineResults, activePopup, setActivePopup, markThemePromptAsSeen, markFriendsPromptAsSeen, addInfoToast } = useContext(UserContext);
+  const { user, isLoading: isUserLoading, syncOfflineResults, activePopup, setActivePopup, markThemePromptAsSeen, markFriendsPromptAsSeen, addInfoToast, wordToAddToDeck, setWordToAddToDeck } = useContext(UserContext);
   const { t } = useTranslations();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
@@ -148,6 +150,7 @@ const MainAppLayout: React.FC = () => {
           
           <AchievementToast />
           <InfoToast />
+          {wordToAddToDeck && <AddToDeckModal word={wordToAddToDeck} onClose={() => setWordToAddToDeck(null)} />}
           {showGuestPrompt && <GuestConversionPrompt onDismiss={() => {setShowGuestPrompt(false); sessionStorage.setItem('guestConversionDismissed', 'true'); }} />}
           {foregroundMessage && <NotificationToast payload={foregroundMessage} onDismiss={() => setForegroundMessage(null)} />}
 
@@ -217,6 +220,7 @@ const AppContent: React.FC = () => {
                 <Route path="duel-quiz" element={<DuelQuizView />} />
                 <Route path="mastery" element={<MasteryView />} />
                 <Route path="labs" element={<LabsView />} />
+                <Route path="flashcards" element={<FlashcardsView />} />
                 <Route path="send-notification" element={<ProtectedRoute><SendNotificationView /></ProtectedRoute>} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>

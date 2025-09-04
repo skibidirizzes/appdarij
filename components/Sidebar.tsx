@@ -22,7 +22,8 @@ import {
     SparklesIcon,
     RootIcon,
     DumbbellIcon,
-    SendIcon
+    SendIcon,
+    FlashcardIcon
 } from './icons/index.ts';
 import { ADMIN_UIDS } from '../constants.ts';
 import Tooltip from './common/Tooltip.tsx';
@@ -78,6 +79,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
         { path: '/dashboard', label: t('nav_dashboard'), icon: BookOpenIcon },
         { path: '/mastery', label: "Mastery", icon: DumbbellIcon },
         { path: '/mistakes-bank', label: "Mistakes Bank", icon: ClipboardListIcon },
+        { path: '/flashcards', label: "Flashcards", icon: FlashcardIcon },
         { path: '/conversation', label: t('nav_conversation'), icon: ChatBubbleIcon },
         { path: '/phoneme-practice', label: t('nav_phoneme_practice'), icon: SoundWaveIcon },
     ];
@@ -99,7 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
     return (
         <aside className={`fixed top-0 left-0 h-full bg-[var(--color-sidebar-bg)] backdrop-blur-lg border-r border-[var(--color-border-card)] flex flex-col z-20 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-24 p-3' : 'w-64 p-4'}`}>
             <div className={`flex items-center mb-6 transition-all duration-300 ${isCollapsed ? 'justify-center' : 'px-2'}`}>
-                <img src="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🇲🇦</text></svg>" alt="App Logo" className="h-8 w-8 flex-shrink-0" />
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg transform='rotate(-10 50 50)'%3E%3Crect x='20' y='20' width='70' height='50' rx='5' fill='%23e2e8f0'/%3E%3C/g%3E%3Crect x='20' y='20' width='70' height='50' rx='5' fill='white'/%3E%3Cpath fill='%23059669' d='M55 35l-3.53 10.87h-11.44l9.25-6.72-3.53 10.87L55 43l9.25 6.72-3.53-10.87 9.25 6.72h-11.44z'/%3E%3C/svg%3E" alt="App Logo" className="h-8 w-8 flex-shrink-0" />
                 {!isCollapsed && (
                     <h1 className="text-xl font-bold text-white tracking-tight ml-3 whitespace-nowrap overflow-hidden">
                         LearnDarija

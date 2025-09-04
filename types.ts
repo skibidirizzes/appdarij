@@ -131,6 +131,24 @@ export interface Sticker {
     description: string;
 }
 
+export interface Flashcard {
+    id: string;
+    frontLatin: string;
+    frontArabic: string;
+    back: string; // English definition
+    exampleLatin?: string;
+    exampleArabic?: string;
+    exampleTranslation?: string;
+}
+
+export interface FlashcardDeck {
+    id: string;
+    name: string;
+    description: string;
+    authorUid: string;
+    cards: Flashcard[];
+}
+
 export interface UserProfile {
   uid: string;
   isAnonymous: boolean;
@@ -155,6 +173,7 @@ export interface UserProfile {
   correctAnswersInRow: number;
   mistakes: Mistake[];
   wordHistory: WordHistoryEntry[];
+  flashcardDecks: FlashcardDeck[];
   // Gamification
   streak: number;
   lastCompletedDate: string; // YYYY-MM-DD
@@ -294,7 +313,7 @@ export interface Message {
     image?: string; // data URL for the image
 }
 
-export type View = 'dashboard' | 'quiz' | 'settings' | 'achievements' | 'mistakes' | 'dictionary' | 'conversation' | 'leaderboard' | 'friends' | 'regional-dialects' | 'phoneme-practice' | 'community' | 'triliteral-root' | 'parental-controls' | 'profile' | 'mistakes-bank' | 'story-mode' | 'duel-setup' | 'duel-quiz' | 'mastery' | 'labs';
+export type View = 'dashboard' | 'quiz' | 'settings' | 'achievements' | 'mistakes' | 'dictionary' | 'conversation' | 'leaderboard' | 'friends' | 'regional-dialects' | 'phoneme-practice' | 'community' | 'triliteral-root' | 'parental-controls' | 'profile' | 'mistakes-bank' | 'story-mode' | 'duel-setup' | 'duel-quiz' | 'mastery' | 'labs' | 'flashcards';
 
 export interface RootAnalysis {
     root: string;
@@ -410,6 +429,13 @@ export interface UserContextType {
   mistakeAnalysis: string | null;
   collectReward: (rewardId: string, points: number) => void;
   useStreakFreeze: () => Promise<boolean>;
+  // Flashcards
+  createDeck: (name: string, description: string) => Promise<void>;
+  deleteDeck: (deckId: string) => Promise<void>;
+  addCardToDeck: (deckId: string, card: Flashcard) => Promise<void>;
+  removeCardFromDeck: (deckId: string, cardId: string) => Promise<void>;
+  wordToAddToDeck: WordInfo | null;
+  setWordToAddToDeck: (word: WordInfo | null) => void;
 }
 
 // --- User Profile Utilities ---
@@ -441,6 +467,7 @@ export const createNewDefaultUser = (): Omit<UserProfile, 'uid' | 'email' | 'dis
       correctAnswersInRow: 0,
       mistakes: [],
       wordHistory: [],
+      flashcardDecks: [],
       streak: 0,
       lastCompletedDate: '',
       streakFreezes: 1,
