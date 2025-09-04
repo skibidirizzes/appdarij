@@ -22,13 +22,11 @@ let ai: GoogleGenAI | null = null;
 const AI_DISABLED_ERROR = "AI services are disabled due to an initialization error.";
 
 try {
-  // API key is hardcoded for browser compatibility.
-  // WARNING: In a production application, exposing API keys on the client-side is a security risk.
-  // It is recommended to use a backend proxy to handle API requests securely.
-  const apiKey = "AIzaSyC3OnzrtxClIhQLqJB0hHnfk87lkcaxsn4"; 
-  ai = new GoogleGenAI({ apiKey: apiKey });
+  // FIX: Per coding guidelines, the API key must be sourced from `process.env.API_KEY`.
+  ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 } catch (e: any) {
-  aiInitializationError = `Gemini AI initialization failed: ${e.message}. If you see this, make sure you have replaced the placeholder API key.`;
+  // FIX: Updated error message to reflect the use of an environment variable for the API key.
+  aiInitializationError = `Gemini AI initialization failed: ${e.message}. Ensure the API_KEY environment variable is set correctly.`;
   console.error("AI Initialization Failed:", aiInitializationError);
   ai = null;
 }
@@ -284,6 +282,15 @@ export async function generateQuiz(
   }
 
   const result = await handleApiCall(prompt, schema, true);
+  return result.quiz;
+}
+
+export async function generateDailyChallengeQuiz(dateSeed: string): Promise<Quiz> {
+  if (!ai) throw new Error(AI_DISABLED_ERROR);
+
+  const prompt = `Generate a unique but consistent quiz for the date: ${dateSeed}. This is the Daily Challenge quiz. It should contain exactly ${QUIZ_LENGTH} questions with a mix of topics: Vocabulary, Grammar, Common Phrases, and Numbers. Difficulty should be medium, around level 15-20. The question types must be varied, including at least one of each: 'multiple-choice', 'writing', 'speaking', and 'sentence-formation'.`;
+
+  const result = await handleApiCall(prompt, fullQuizSchema, true);
   return result.quiz;
 }
 

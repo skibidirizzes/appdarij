@@ -1,5 +1,6 @@
 import React from 'react';
-import { getWeek, getMonth } from 'date-fns';
+// FIX: Removed `startOfMonth` from `date-fns` import as it was causing a module resolution error.
+import { getWeek, getMonth, addMonths, format } from 'date-fns';
 
 // Add to window type for Firebase Phone Auth
 declare global {
@@ -157,6 +158,9 @@ export interface UserProfile {
   // Gamification
   streak: number;
   lastCompletedDate: string; // YYYY-MM-DD
+  streakFreezes: number;
+  lastStreakFreezeDate: string; // YYYY-MM-DD
+  nextFreezeRefillDate: string; // YYYY-MM-DD
   dailyXp: number;
   lastActivityDate: string; // YYYY-MM-DD
   weeklyProgress: WeeklyProgress;
@@ -167,6 +171,8 @@ export interface UserProfile {
   lastLoginDate: string; // YYYY-MM-DD
   lastOnline: number; // Timestamp for "online now" vs "online 5h ago"
   fcmToken?: string; // For Firebase Cloud Messaging
+  dailyChallengeCompletedDate: string; // YYYY-MM-DD
+  collectedRewards: string[]; // e.g., ['vocabulary-reward-1']
   // Popups & Onboarding
   hasCompletedOnboarding: boolean;
   hasSeenThemePrompt: boolean;
@@ -244,7 +250,7 @@ export interface QuizCache {
     wordToReview?: WordInfo;
 }
 
-export type LearningTopic = 'Vocabulary' | 'Grammar' | 'Common Phrases' | 'Numbers' | 'Personalized Review' | 'Spaced Repetition';
+export type LearningTopic = 'Vocabulary' | 'Grammar' | 'Common Phrases' | 'Numbers' | 'Personalized Review' | 'Spaced Repetition' | 'Daily Challenge';
 
 export type UserAnswer = number | string | string[] | 'skipped' | 'idk' | null;
 
@@ -317,6 +323,7 @@ export interface OfflineQuizResult {
     answers: UserAnswer[];
     quizQuestions: QuizQuestion[];
     timestamp: number;
+    isDailyChallenge?: boolean;
 }
 
 export interface InfoToastData {
@@ -373,7 +380,7 @@ export interface UserContextType {
   user: UserProfile | null;
   isLoading: boolean;
   updateUser: (payload: UpdateUserPayload) => void;
-  submitQuizResults: (topic: LearningTopic, level: number | null, answers: UserAnswer[], quizQuestions: QuizQuestion[]) => void;
+  submitQuizResults: (topic: LearningTopic, level: number | null, answers: UserAnswer[], quizQuestions: QuizQuestion[], isDailyChallenge?: boolean) => void;
   updateSettings: (settings: Partial<UserSettings>) => void;
   updateProfileDetails: (details: Partial<Pick<UserProfile, 'displayName' | 'photoURL' | 'hasCompletedOnboarding' | 'bio' | 'childAccountIds'>>) => void;
   resetAllData: () => Promise<void>;
@@ -401,6 +408,8 @@ export interface UserContextType {
   followUser: (targetUid: string) => Promise<void>;
   unfollowUser: (targetUid: string) => Promise<void>;
   mistakeAnalysis: string | null;
+  collectReward: (rewardId: string, points: number) => void;
+  useStreakFreeze: () => Promise<boolean>;
 }
 
 // --- User Profile Utilities ---
@@ -411,6 +420,9 @@ export const createNewDefaultUser = (): Omit<UserProfile, 'uid' | 'email' | 'dis
     const browserLang = typeof navigator !== 'undefined' ? navigator.language.split('-')[0] : 'en';
     const initialLang = browserLang === 'nl' ? 'nl' : 'en';
     const now = new Date();
+    // FIX: Replaced `startOfMonth` from `date-fns` with a native `Date` object to fix an import error.
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextMonth = addMonths(startOfCurrentMonth, 1);
     
     return {
       score: 0,
@@ -431,6 +443,9 @@ export const createNewDefaultUser = (): Omit<UserProfile, 'uid' | 'email' | 'dis
       wordHistory: [],
       streak: 0,
       lastCompletedDate: '',
+      streakFreezes: 1,
+      lastStreakFreezeDate: '',
+      nextFreezeRefillDate: format(nextMonth, 'yyyy-MM-dd'),
       dailyXp: 0,
       lastActivityDate: now.toISOString().split('T')[0],
       weeklyProgress: { quizzes: 0, words: 0, dhGained: 0, date: getWeekIdentifier(now) },
@@ -440,6 +455,8 @@ export const createNewDefaultUser = (): Omit<UserProfile, 'uid' | 'email' | 'dis
       createdAt: now.getTime(),
       lastLoginDate: now.toISOString().split('T')[0],
       lastOnline: now.getTime(),
+      dailyChallengeCompletedDate: '',
+      collectedRewards: [],
       hasCompletedOnboarding: false,
       hasSeenThemePrompt: false,
       hasSeenFriendsPrompt: false,

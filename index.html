@@ -399,6 +399,24 @@
         -ms-overflow-style: none;  /* IE and Edge */
         scrollbar-width: none;  /* Firefox */
       }
+      
+      /* New Learning Path Animations */
+      @keyframes draw-path {
+          to { stroke-dashoffset: 0; }
+      }
+      .animate-draw-path {
+          stroke-dasharray: 1000;
+          stroke-dashoffset: 1000;
+          animation: draw-path 3s 0.5s ease-out forwards;
+      }
+
+      @keyframes pulse-node {
+          0%, 100% { transform: scale(1) translate(-50%, -50%); box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0.7); }
+          50% { transform: scale(1.1) translate(-50%, -50%); box-shadow: 0 0 0 10px rgba(var(--color-primary-rgb), 0); }
+      }
+      .animate-pulse-node {
+          animation: pulse-node 2s infinite;
+      }
     </style>
   <script type="importmap">
 {

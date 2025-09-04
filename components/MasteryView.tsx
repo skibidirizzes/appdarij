@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { UserContext } from '../context/UserContext.tsx';
 import { useTranslations } from '../hooks/useTranslations.ts';
 import Card from './common/Card.tsx';
-import { DumbbellIcon } from '../icons/index.ts';
+import { DumbbellIcon } from './icons/index.ts';
 import { Quiz, ScriptMode } from '../types.ts';
 
 // FIX: Remove props and use hooks instead.

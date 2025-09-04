@@ -85,7 +85,8 @@ const ForgotPasswordModal: React.FC<{onClose: () => void}> = ({ onClose }) => {
     )
 }
 
-const AuthView: React.FC = () => {
+// FIX: Changed to a named export to fix module resolution issue.
+export const AuthView: React.FC = () => {
     const [isLogin, setIsLogin] = useState(true);
     const [authMode, setAuthMode] = useState<'email' | 'phone'>('email');
     
@@ -341,19 +342,18 @@ const AuthView: React.FC = () => {
                      <div className="mt-4 space-y-3">
                         <Button onClick={handleGoogleSignIn} disabled={loading} className="w-full flex justify-center items-center gap-3 auth-google-btn">
                             <GoogleIcon className="w-5 h-5" />
-                            <span className="font-semibold">{t(isLogin ? 'auth_google_signin' : 'auth_google_signup')}</span>
+                            {isLogin ? t('auth_google_signin') : t('auth_google_signup')}
                         </Button>
                     </div>
                 </div>
 
-                <div className="mt-6 text-center">
-                    <button onClick={() => { setIsLogin(!isLogin); resetFormState(); }} className="text-sm font-medium text-primary-400 hover:text-primary-300">
-                        {isLogin ? t('auth_prompt_signup') : t('auth_prompt_signin')}
-                    </button>
-                </div>
+                 <p className="mt-6 text-center text-sm text-[var(--color-text-muted)]">
+                     {isLogin ? t('auth_prompt_signup') : t('auth_prompt_signup')}{' '}
+                     <button onClick={() => { setIsLogin(!isLogin); resetFormState(); }} className="font-medium text-primary-400 hover:text-primary-300">
+                         {isLogin ? t('auth_signup_button') : t('auth_signin_button')}
+                     </button>
+                 </p>
             </Card>
         </div>
     );
 };
-
-export default AuthView;

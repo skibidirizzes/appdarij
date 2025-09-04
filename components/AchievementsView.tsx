@@ -7,9 +7,10 @@ import Button from './common/Button.tsx';
 import { useTranslations } from '../hooks/useTranslations.ts';
 import { TranslationKey } from '../localization/translations.ts';
 import { LearningTopic } from '../types.ts';
+import { ShareIcon } from './icons/index.ts';
 
 const AchievementsView: React.FC = () => {
-    const { user } = useContext(UserContext);
+    const { user, addInfoToast } = useContext(UserContext);
     const navigate = useNavigate();
     const { t } = useTranslations();
     const unlockedCount = user.unlockedAchievements.length;
@@ -20,6 +21,33 @@ const AchievementsView: React.FC = () => {
         const firstTopic = LEARNING_TOPICS[0].name;
         navigate('/quiz', { state: { topic: firstTopic, level: 1 } });
     }
+
+    const handleShare = (e: React.MouseEvent, achievementName: string) => {
+        e.stopPropagation();
+
+        if (!navigator.share) {
+            addInfoToast({ type: 'warning', message: 'Sharing is not supported on your browser.' });
+            return;
+        }
+        
+        const shareData = {
+            title: 'My LearnDarija Achievement!',
+            text: `I unlocked the "${achievementName}" achievement in LearnDarija! Come learn Moroccan Arabic with me! 🇲🇦 #LearnDarija`,
+            url: window.location.origin,
+        };
+
+        try {
+            navigator.share(shareData).catch((err) => {
+                 if (err.name !== 'AbortError') {
+                    console.error("Share failed:", err);
+                    addInfoToast({ type: 'error', message: 'Could not share achievement.' });
+                 }
+            });
+        } catch (err) {
+            console.error("Share failed:", err);
+            addInfoToast({ type: 'error', message: 'Could not share achievement.' });
+        }
+    };
 
     if (unlockedCount === 0) {
         return (
@@ -57,15 +85,25 @@ const AchievementsView: React.FC = () => {
                     return (
                         <Card 
                             key={ach.id} 
-                            className={`transition-all duration-300 flex card-lift-hover ${isUnlocked ? 'bg-gradient-to-br from-amber-900/40 via-slate-800/50 to-slate-800/50 border-amber-600/50' : 'opacity-60 bg-slate-800/30'}`}
+                            className={`transition-all duration-300 flex items-stretch card-lift-hover ${isUnlocked ? 'bg-gradient-to-br from-amber-900/40 via-slate-800/50 to-slate-800/50 border-amber-600/50' : 'opacity-60 bg-slate-800/30'}`}
                         >
-                            <div className="p-5 flex items-center gap-5">
+                            <div className="p-5 flex items-center gap-5 flex-1">
                                 <div className={`text-4xl transition-transform duration-500 ${isUnlocked ? 'scale-110 filter grayscale-0' : 'scale-100 filter grayscale'}`}>{ach.icon}</div>
                                 <div className="flex-1">
                                     <h3 className={`font-bold ${isUnlocked ? 'text-amber-300' : 'text-slate-300'}`}>{t(nameKey)}</h3>
                                     <p className="text-sm text-slate-400">{t(descKey)}</p>
                                 </div>
                             </div>
+                            {isUnlocked && navigator.share && (
+                                <button 
+                                    onClick={(e) => handleShare(e, t(nameKey))} 
+                                    className="px-4 flex items-center justify-center bg-slate-700/30 hover:bg-slate-700/60 rounded-r-2xl"
+                                    aria-label={`Share ${t(nameKey)} achievement`}
+                                    title="Share this achievement"
+                                >
+                                    <ShareIcon className="w-5 h-5 text-slate-300"/>
+                                </button>
+                            )}
                         </Card>
                     );
                 })}

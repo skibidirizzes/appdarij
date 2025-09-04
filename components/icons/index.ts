@@ -49,3 +49,5 @@ export * from './EyeOffIcon.tsx';
 export * from './ShieldCheckIcon.tsx';
 export * from './UserIcon.tsx';
 export * from './RefreshCwIcon.tsx';
+export * from './GiftIcon.tsx';
+export * from './ShareIcon.tsx';

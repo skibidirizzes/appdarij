@@ -14,6 +14,7 @@ import Tooltip from './common/Tooltip.tsx';
 
 const PostCard: React.FC<{ post: CommunityPost }> = ({ post }) => {
     const { t } = useTranslations();
+    
     return (
         <Card className="p-4 flex gap-4 card-lift-hover">
             <div className="flex flex-col items-center gap-1 w-10 flex-shrink-0">
@@ -48,7 +49,8 @@ const StickerDisplay: React.FC<{ sticker: Sticker }> = ({ sticker }) => {
     )
 }
 
-const ProfileView: React.FC = () => {
+// FIX: Changed to a named export to resolve a module resolution issue.
+export const ProfileView: React.FC = () => {
     const { userId } = useParams<{ userId: string }>();
     const { user: currentUser } = useContext(UserContext);
     const { t } = useTranslations();
@@ -170,14 +172,13 @@ const ProfileView: React.FC = () => {
                                 {posts.map(post => <PostCard key={post.id} post={post} />)}
                             </div>
                         ) : (
-                            <p className="text-slate-400 text-center py-4">This user hasn't made any posts yet.</p>
+                            <Card className="p-8 text-center text-slate-400">
+                                <p>{profile.displayName} has not made any posts yet.</p>
+                            </Card>
                         )
                     )}
                 </div>
             </Card>
-
         </div>
     );
 };
-
-export default ProfileView;

@@ -12,7 +12,8 @@ import AchievementToast from './components/AchievementToast.tsx';
 import InfoToast from './components/InfoToast.tsx';
 import GuestConversionPrompt from './components/GuestConversionPrompt.tsx';
 import NotificationToast from './components/NotificationToast.tsx';
-import AuthView from './components/AuthView.tsx';
+// FIX: Changed to a named import to resolve a module resolution issue.
+import { AuthView } from './components/AuthView.tsx';
 import QuizInProgressToast from './components/QuizInProgressToast.tsx';
 import { ThemePromptPopup, DailyGoalPopup, FriendsPromptPopup, NotificationPromptPopup, ProfileSetupPopup } from './components/popups/index.ts';
 import { ADMIN_UIDS } from './constants.ts';
@@ -31,7 +32,8 @@ import PhonemePracticeView from './components/PhonemePracticeView.tsx';
 import CommunityView from './components/CommunityView.tsx';
 import TriliteralRootView from './components/TriliteralRootView.tsx';
 import ParentalControlsView from './components/ParentalControlsView.tsx';
-import ProfileView from './components/ProfileView.tsx';
+// FIX: Changed to a named import to resolve a module resolution issue.
+import { ProfileView } from './components/ProfileView.tsx';
 import MistakesBankView from './components/MistakesBankView.tsx';
 import StoryModeView from './components/StoryModeView.tsx';
 import DuelSetupView from './components/DuelSetupView.tsx';

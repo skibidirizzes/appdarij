@@ -41,6 +41,8 @@ export const UserContext = createContext<UserContextType>({
   followUser: async () => {},
   unfollowUser: async () => {},
   mistakeAnalysis: null,
+  collectReward: () => {},
+  useStreakFreeze: async () => false,
 });
 
 
@@ -122,7 +124,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Direct updates are better handled in functions like submitQuizResults
   }, [user]);
 
-  const submitQuizResults = useCallback(async (topic: LearningTopic, level: number | null, answers: UserAnswer[], quizQuestions: QuizQuestion[]) => {
+  const submitQuizResults = useCallback(async (topic: LearningTopic, level: number | null, answers: UserAnswer[], quizQuestions: QuizQuestion[], isDailyChallenge?: boolean) => {
     if(!user) return;
     
     let correctCount = 0;
@@ -142,15 +144,24 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const scoreGained = correctCount * POINTS_PER_CORRECT_ANSWER;
     const updates: { [key: string]: any } = {
-        score: firebase.firestore.FieldValue.increment(scoreGained),
         questionsAnswered: firebase.firestore.FieldValue.increment(quizQuestions.length),
         correctAnswers: firebase.firestore.FieldValue.increment(correctCount),
         quizzesCompleted: firebase.firestore.FieldValue.increment(1),
         mistakes: firebase.firestore.FieldValue.arrayUnion(...newMistakes),
         wordHistory: firebase.firestore.FieldValue.arrayUnion(...newWordHistory),
     };
+
+    if (isDailyChallenge && correctCount >= quizQuestions.length * 0.7) { // Pass if >70% correct
+        const today = new Date().toISOString().split('T')[0];
+        updates.dailyChallengeCompletedDate = today;
+        updates.score = firebase.firestore.FieldValue.increment(scoreGained + 50); // +50 bonus
+        addInfoToast({ type: 'success', message: 'Daily Challenge Complete! +50 bonus DH!' });
+        triggerConfetti();
+    } else {
+        updates.score = firebase.firestore.FieldValue.increment(scoreGained);
+    }
     
-    if (topic !== 'Personalized Review' && topic !== 'Spaced Repetition' && level !== null) {
+    if (topic !== 'Personalized Review' && topic !== 'Spaced Repetition' && topic !== 'Daily Challenge' && level !== null) {
         const currentHighScore = user.progress?.[topic]?.[level]?.highScore || 0;
         updates[`progress.${topic}.${level}.completedCount`] = firebase.firestore.FieldValue.increment(1);
         updates[`progress.${topic}.${level}.highScore`] = Math.max(currentHighScore, correctCount);
@@ -161,7 +172,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updatedUser = await getUserProfile(user.uid);
     if (updatedUser) setUser(updatedUser);
 
-  }, [user]);
+  }, [user, addInfoToast]);
   
    const updateSettings = async (settings: Partial<UserSettings>) => {
     if(!user) return;
@@ -209,7 +220,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addInfoToast({ type: 'info', message: `Syncing ${queue.length} saved quiz results...` });
 
     for (const result of queue) {
-        await submitQuizResults(result.topic, result.level, result.answers, result.quizQuestions);
+        await submitQuizResults(result.topic, result.level, result.answers, result.quizQuestions, result.isDailyChallenge);
     }
     
     localStorage.removeItem(OFFLINE_QUEUE_KEY);
@@ -224,6 +235,38 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if(!user) return false;
       return await requestAndSaveToken(user.uid);
   };
+  
+   const collectReward = useCallback(async (rewardId: string, points: number) => {
+        if (!user || user.collectedRewards.includes(rewardId)) return;
+        const updates = {
+            score: firebase.firestore.FieldValue.increment(points),
+            collectedRewards: firebase.firestore.FieldValue.arrayUnion(rewardId),
+        };
+        await updateUserProfile(user.uid, updates);
+        setUser(prev => prev ? ({ ...prev, score: prev.score + points, collectedRewards: [...prev.collectedRewards, rewardId] }) : null);
+    }, [user]);
+
+    const useStreakFreeze = useCallback(async (): Promise<boolean> => {
+        if (!user || user.streakFreezes <= 0) return false;
+        const today = new Date().toISOString().split('T')[0];
+        if (user.lastStreakFreezeDate === today) return false;
+
+        const updates = {
+            streakFreezes: firebase.firestore.FieldValue.increment(-1),
+            lastStreakFreezeDate: today,
+        };
+
+        try {
+            await updateUserProfile(user.uid, updates);
+            setUser(prev => prev ? ({ ...prev, streakFreezes: prev.streakFreezes - 1, lastStreakFreezeDate: today }) : null);
+            addInfoToast({ type: 'success', message: 'Streak Freeze activated!' });
+            return true;
+        } catch (e) {
+            console.error("Failed to use streak freeze:", e);
+            addInfoToast({ type: 'error', message: 'Could not activate Streak Freeze.' });
+            return false;
+        }
+    }, [user, addInfoToast]);
 
   const markThemePromptAsSeen = async () => { 
       if(!user) return;
@@ -330,10 +373,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     followUser,
     unfollowUser,
     mistakeAnalysis,
+    collectReward,
+    useStreakFreeze,
   }), [
     user, isLoading, updateUser, submitQuizResults, updateSettings, updateProfileDetails, logout, 
     newlyUnlockedAchievements, clearNewlyUnlockedAchievements, isLevelUnlocked,
-    addInfoToast, infoToasts, syncOfflineResults, activePopup, mistakeAnalysis, friends, incomingRequests, outgoingRequests
+    addInfoToast, infoToasts, syncOfflineResults, activePopup, mistakeAnalysis, friends, incomingRequests, outgoingRequests, collectReward, useStreakFreeze
   ]);
 
   return (

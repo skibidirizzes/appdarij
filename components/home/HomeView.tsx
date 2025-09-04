@@ -15,6 +15,7 @@ import HeaderStats from './HeaderStats.tsx';
 import HomeSidebarTabs from './HomeSidebarTabs.tsx';
 import Tooltip from '../common/Tooltip.tsx';
 import { TranslationKey } from '../../localization/translations.ts';
+import StreakFreezeCard from '../common/StreakFreezeCard.tsx';
 
 const VOCAB_SUB_CATEGORIES = [
   { key: 'family', nameKey: 'vocab_family', englishName: 'Family & People', icon: '👨‍👩‍👧‍👦' },
@@ -230,7 +231,7 @@ const MiniLeaderboard: React.FC = () => {
 }
 
 const HomeView: React.FC<HomeViewProps> = () => {
-  const { user, isLevelUnlocked, mistakeAnalysis, addInfoToast } = useContext(UserContext);
+  const { user, isLevelUnlocked, mistakeAnalysis, addInfoToast, useStreakFreeze } = useContext(UserContext);
   const navigate = useNavigate();
   const [selectedTopic, setSelectedTopic] = useState<LearningTopic>('Vocabulary');
   const [selectedVocabSubCategory, setSelectedVocabSubCategory] = useState<typeof VOCAB_SUB_CATEGORIES[number]['key'] | null>(null);
@@ -371,6 +372,12 @@ const HomeView: React.FC<HomeViewProps> = () => {
 
     }, [user, t, isLevelUnlocked, wordsForRepetition, mistakeAnalysis, navigate]);
     
+    const usedToday = useMemo(() => {
+        if (!user?.lastStreakFreezeDate) return false;
+        const today = new Date().toISOString().split('T')[0];
+        return user.lastStreakFreezeDate === today;
+    }, [user?.lastStreakFreezeDate]);
+    
     if (!user || !suggestion) {
         return null; // Or a loading spinner
     }
@@ -494,6 +501,13 @@ const HomeView: React.FC<HomeViewProps> = () => {
                       alt="Animated Mascot"
                       className="home-mascot animate-float"
                     />
+                     <StreakFreezeCard
+                        streakDays={user.streak}
+                        freezes={user.streakFreezes}
+                        nextFreezeDate={user.nextFreezeRefillDate}
+                        usedToday={usedToday}
+                        onUseFreeze={useStreakFreeze}
+                     />
                      <Card className="p-6">
                          <h3 className="text-xl font-bold text-white mb-2">Quick Duel</h3>
                          <p className="text-slate-300 text-sm">Challenge a friend to a quick quiz and test your skills!</p>

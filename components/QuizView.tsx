@@ -8,7 +8,7 @@ import { QUIZ_LENGTH, WRITING_SIMILARITY_THRESHOLD, OFFLINE_QUEUE_KEY } from '..
 import Button from './common/Button.tsx';
 import Card from './common/Card.tsx';
 import Modal from './common/Modal.tsx';
-import { CheckCircleIcon, XCircleIcon, MicrophoneIcon, StopIcon, ClipboardListIcon, SpinnerIcon } from './icons/index.ts';
+import { CheckCircleIcon, XCircleIcon, MicrophoneIcon, StopIcon, ClipboardListIcon, SpinnerIcon, ShareIcon } from './icons/index.ts';
 import { calculateSimilarity } from '../utils/stringSimilarity.ts';
 import { useTranslations } from '../hooks/useTranslations.ts';
 import LoadingQuiz from './LoadingQuiz.tsx';
@@ -427,6 +427,34 @@ const QuizView: React.FC<QuizViewProps> = (props) => {
   const quizTopicLabel = topic === 'Personalized Review' ? t('topic_review_name') : t(`topic_${topic?.toLowerCase().replace(' ', '_')}_name` as any);
   const quizLevelLabel = level ? `${t('quiz_level_label')} ${level}`: '';
 
+  const handleShareScore = () => {
+    if (!navigator.share || !quiz) {
+        addInfoToast({ type: 'warning', message: 'Sharing is not supported on your browser.' });
+        return;
+    }
+
+    const correctCount = userAnswers.filter((a, i) => isCorrectAnswer(quiz![i], a)).length;
+    const total = quiz.length;
+    
+    const shareData = {
+        title: 'My LearnDarija Quiz Score!',
+        text: `I just scored ${correctCount}/${total} on my ${quizTopicLabel} quiz in LearnDarija! Come learn Moroccan Arabic with me! 🇲🇦 #LearnDarija`,
+        url: window.location.origin,
+    };
+
+    try {
+        navigator.share(shareData).catch((err) => {
+             if (err.name !== 'AbortError') {
+                 console.error("Share failed:", err);
+                 addInfoToast({ type: 'error', message: 'Could not share your score.' });
+             }
+        });
+    } catch (err) {
+        console.error("Share failed:", err);
+        addInfoToast({ type: 'error', message: 'Could not share your score.' });
+    }
+};
+
   if (quizFlowState === 'explanation' && topic && typeof level !== 'undefined') {
       return <PreQuizExplanation topic={topic} level={level} onContinue={loadQuiz} />;
   }
@@ -529,8 +557,13 @@ const QuizView: React.FC<QuizViewProps> = (props) => {
                     );
                 })}
             </div>
-            <div className="mt-6 text-center">
-                <Button onClick={onQuizFinish} size="lg">{t('button_back_to_dashboard')}</Button>
+            <div className="mt-6 text-center flex flex-col sm:flex-row gap-4 justify-center">
+                <Button onClick={onQuizFinish} size="lg" className="w-full sm:w-auto">{t('button_back_to_dashboard')}</Button>
+                 {navigator.share && (
+                    <Button onClick={handleShareScore} size="lg" variant="secondary" className="w-full sm:w-auto flex items-center justify-center gap-2">
+                        <ShareIcon className="w-5 h-5" /> Share Score
+                    </Button>
+                )}
             </div>
         </div>
     );
