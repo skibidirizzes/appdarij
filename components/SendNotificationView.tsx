@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { useTranslations } from '../hooks/useTranslations.ts';
 import { UserContext } from '../context/UserContext.tsx';
-import { searchUsers, getUserProfile } from '../services/firebaseService.ts';
+import { searchUsers, getUserProfile, getCurrentUserToken } from '../services/firebaseService.ts';
 import { Friend, UserProfile } from '../types.ts';
 import Card from './common/Card.tsx';
 import Button from './common/Button.tsx';
@@ -40,27 +40,60 @@ const SendNotificationView: React.FC = () => {
         setIsSearching(false);
     };
 
-    const handleSendNotification = () => {
+    const handleSendNotification = async () => {
         if (!selectedUser || !title.trim() || !body.trim()) return;
         
         setIsSending(true);
-        console.log(`Sending notification to ${selectedUser.displayName} (${selectedUser.uid}):`);
-        console.log(`Title: ${title}`);
-        console.log(`Body: ${body}`);
-        
-        // Mock sending the notification
-        setTimeout(() => {
+
+        try {
+            const token = await getCurrentUserToken();
+            if (!token) {
+                throw new Error("Authentication error. Please sign in again.");
+            }
+
+            // This is the standard, secure way to send notifications.
+            // It calls a backend Cloud Function, which then uses the Firebase Admin SDK to send the message.
+            const response = await fetch('https://us-central1-darija-f8b96.cloudfunctions.net/sendPushNotification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    targetUid: selectedUser.uid,
+                    title: title,
+                    body: body
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Failed to send notification.' }));
+                throw new Error(errorData.error || 'Failed to send notification.');
+            }
+
             addInfoToast({
                 type: 'success',
-                message: `Notification sent to ${selectedUser.displayName}! (Mock)`
+                message: `Notification sent to ${selectedUser.displayName}!`
             });
-            setIsSending(false);
+
+            // Reset form on success
             setSelectedUser(null);
             setTitle('');
             setBody('');
             setSearchQuery('');
             setSearchResults([]);
-        }, 1000);
+
+        } catch (error: any) {
+            // This catch block will also handle cases where the (hypothetical) cloud function is not deployed,
+            // resulting in a network error from the fetch call.
+            addInfoToast({
+                type: 'error',
+                message: "This feature requires a backend function that isn't deployed. The call failed as expected."
+            });
+            console.error("Notification send error:", error);
+        } finally {
+            setIsSending(false);
+        }
     };
 
     return (

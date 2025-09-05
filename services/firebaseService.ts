@@ -57,6 +57,13 @@ export const signOut = (): Promise<void> => {
     return auth.signOut();
 };
 
+export const getCurrentUserToken = async (): Promise<string | null> => {
+    if (auth.currentUser) {
+        return auth.currentUser.getIdToken();
+    }
+    return null;
+}
+
 export const sendPasswordResetEmail = (email: string): Promise<void> => {
     const actionCodeSettings = {
         url: `${window.location.origin}/reset-password`,
